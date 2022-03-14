@@ -2,6 +2,7 @@ use super::*;
 
 use crate::{parse_tree::AsmOp, semantic_analysis::ast_node::*, Ident};
 use std::collections::HashMap;
+use sway_types::state::StateIndex;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ContractCallMetadata {
@@ -99,6 +100,20 @@ pub(crate) enum TypedExpressionVariant {
     SizeOf {
         variant: SizeOfVariant,
     },
+    #[allow(dead_code)]
+    StorageAccess(TypeCheckedStorageAccess),
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeCheckedStorageAccess {
+    pub(crate) field_ix_and_name: Option<(StateIndex, Ident)>,
+    pub(crate) field_to_access_span: Span,
+}
+
+impl TypeCheckedStorageAccess {
+    pub fn field_name(&self) -> Option<&Ident> {
+        self.field_ix_and_name.as_ref().map(|(_, x)| x)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -222,6 +237,10 @@ impl TypedExpressionVariant {
                     format!("size_of({:?})", type_name.friendly_type_str())
                 }
             },
+            TypedExpressionVariant::StorageAccess(access) => match access.field_name() {
+                Some(name) => format!("storage field {} access", name.as_str()),
+                None => "storage struct access".into(),
+            },
         }
     }
     /// Makes a fresh copy of all type ids in this expression. Used when monomorphizing.
@@ -339,6 +358,7 @@ impl TypedExpressionVariant {
                 SizeOfVariant::Type(_) => (),
                 SizeOfVariant::Val(exp) => exp.copy_types(type_mapping),
             },
+            StorageAccess { .. } => (),
         }
     }
 }

@@ -1,7 +1,7 @@
 use super::{impl_trait::Mode, TypedCodeBlock, TypedExpression};
 use crate::{error::*, parse_tree::*, type_engine::*, Ident};
 
-use sway_types::{join_spans, span::Span, Property};
+use sway_types::{join_spans, span::Span, state::StateIndex, Property};
 
 mod function;
 mod variable;
@@ -17,6 +17,7 @@ pub enum TypedDeclaration {
     StructDeclaration(TypedStructDeclaration),
     EnumDeclaration(TypedEnumDeclaration),
     Reassignment(TypedReassignment),
+    StorageReassignment(TypeCheckedStorageReassignment),
     ImplTrait {
         trait_name: CallPath,
         span: Span,
@@ -45,6 +46,7 @@ impl TypedDeclaration {
             StructDeclaration(ref mut struct_decl) => struct_decl.copy_types(type_mapping),
             EnumDeclaration(ref mut enum_decl) => enum_decl.copy_types(type_mapping),
             Reassignment(ref mut reassignment) => reassignment.copy_types(type_mapping),
+            StorageReassignment(..) => (),
             ImplTrait {
                 ref mut methods, ..
             } => {
@@ -69,6 +71,7 @@ impl TypedDeclaration {
             StructDeclaration(_) => "struct",
             EnumDeclaration(_) => "enum",
             Reassignment(_) => "reassignment",
+            StorageReassignment(_) => "contract storage reassignment",
             ImplTrait { .. } => "impl trait",
             AbiDeclaration(..) => "abi",
             GenericTypeForFunctionScope { .. } => "generic type parameter",
@@ -130,6 +133,7 @@ impl TypedDeclaration {
             Reassignment(TypedReassignment { lhs, .. }) => lhs
                 .iter()
                 .fold(lhs[0].span(), |acc, this| join_spans(acc, this.span())),
+            StorageReassignment(decl) => decl.lhs_span(),
             AbiDeclaration(TypedAbiDeclaration { span, .. }) => span.clone(),
             ImplTrait { span, .. } => span.clone(),
             ErrorRecovery | GenericTypeForFunctionScope { .. } => {
@@ -182,6 +186,7 @@ impl TypedDeclaration {
         match self {
             GenericTypeForFunctionScope { .. }
             | Reassignment(..)
+            | StorageReassignment { .. }
             | ImplTrait { .. }
             | AbiDeclaration(..)
             | ErrorRecovery => Visibility::Public,
@@ -435,6 +440,33 @@ impl TypedReassignment {
                     insert_type(look_up_type_id_raw(*r#type))
                 };
             });
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeCheckedStorageReassignment {
+    pub(crate) name: String,
+    pub(crate) ix: StateIndex,
+    pub(crate) r#type: TypeId,
+    pub(crate) lhs_span: Span,
+    pub(crate) rhs: TypedExpression,
+}
+
+impl TypeCheckedStorageReassignment {
+    pub(crate) fn rhs(&self) -> &TypedExpression {
+        &self.rhs
+    }
+    pub(crate) fn lhs_span(&self) -> Span {
+        self.lhs_span.clone()
+    }
+    pub(crate) fn ix(&self) -> StateIndex {
+        self.ix
+    }
+    pub(crate) fn name(&self) -> String {
+        self.name.clone()
+    }
+    pub(crate) fn r#type(&self) -> TypeId {
+        self.r#type
     }
 }
 

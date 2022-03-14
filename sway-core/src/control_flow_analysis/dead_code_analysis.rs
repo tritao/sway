@@ -367,6 +367,18 @@ fn connect_declaration(
             connect_enum_declaration(enum_decl, graph, entry_node);
             Ok(leaves.to_vec())
         }
+        StorageReassignment(storage_reassignment) => {
+            let rhs = storage_reassignment.rhs();
+            connect_expression(
+                &rhs.expression,
+                graph,
+                &[entry_node],
+                exit_node,
+                "storage field reassignment",
+                tree_type,
+                rhs.span.clone(),
+            )
+        }
         Reassignment(TypedReassignment { rhs, .. }) => connect_expression(
             &rhs.expression,
             graph,
@@ -974,6 +986,21 @@ fn connect_expression(
             )?;
             Ok(prefix_idx)
         }
+        StorageAccess(field) => match field.field_name() {
+            Some(_field_name) => {
+                // Enable the code below once storage is added to the namespace
+                /* let storage_node = graph.namespace.storage.get(field_name).cloned();
+                let this_ix =
+                    graph.add_node(format!("storage field access: {}", field_name.as_str()).into());
+                for leaf in leaves {
+                    storage_node.map(|x| graph.add_edge(*leaf, x, "".into()));
+                    graph.add_edge(*leaf, this_ix, "".into());
+                }
+                Ok(vec![this_ix])*/
+                Ok(vec![])
+            }
+            None => Ok(leaves.to_vec()),
+        },
         SizeOf { variant } => match variant {
             SizeOfVariant::Type(_) => Ok(vec![]),
             SizeOfVariant::Val(exp) => {

@@ -5,7 +5,10 @@ mod core;
 mod server;
 mod sway_config;
 mod utils;
+mod testing_utils;
 use server::Backend;
+
+mod tests;
 
 pub async fn start() {
     let stdin = tokio::io::stdin();

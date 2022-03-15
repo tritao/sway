@@ -47,6 +47,37 @@ impl Backend {
     }
 }
 
+/// Convenience function for building [`lsp::ServerCapabilities`] for [Backend].
+pub fn capabilities() -> lsp::ServerCapabilities {
+    lsp::ServerCapabilities {
+        text_document_sync: Some(lsp::TextDocumentSyncCapability::Kind(
+            lsp::TextDocumentSyncKind::INCREMENTAL,
+        )),
+        definition_provider: Some(lsp::OneOf::Left(true)),
+        semantic_tokens_provider: capabilities::semantic_tokens::get_semantic_tokens(),
+        document_symbol_provider: Some(lsp::OneOf::Left(true)),
+        hover_provider: Some(HoverProviderCapability::Simple(true)),
+        completion_provider: Some(lsp::CompletionOptions {
+            resolve_provider: Some(false),
+            trigger_characters: None,
+            ..Default::default()
+        }),
+        rename_provider: Some(lsp::OneOf::Right(lsp::RenameOptions {
+            prepare_provider: Some(true),
+            work_done_progress_options: lsp::WorkDoneProgressOptions {
+                work_done_progress: Some(true),
+            },
+        })),
+        execute_command_provider: Some(lsp::ExecuteCommandOptions {
+            commands: vec![],
+            ..Default::default()
+        }),
+        document_highlight_provider: Some(OneOf::Left(true)),
+        document_formatting_provider: Some(OneOf::Left(true)),
+        ..lsp::ServerCapabilities::default()
+    }
+}
+
 #[lspower::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, params: InitializeParams) -> jsonrpc::Result<InitializeResult> {
@@ -63,33 +94,7 @@ impl LanguageServer for Backend {
 
         Ok(lsp::InitializeResult {
             server_info: None,
-            capabilities: lsp::ServerCapabilities {
-                text_document_sync: Some(lsp::TextDocumentSyncCapability::Kind(
-                    lsp::TextDocumentSyncKind::INCREMENTAL,
-                )),
-                definition_provider: Some(lsp::OneOf::Left(true)),
-                semantic_tokens_provider: capabilities::semantic_tokens::get_semantic_tokens(),
-                document_symbol_provider: Some(lsp::OneOf::Left(true)),
-                hover_provider: Some(HoverProviderCapability::Simple(true)),
-                completion_provider: Some(lsp::CompletionOptions {
-                    resolve_provider: Some(false),
-                    trigger_characters: None,
-                    ..Default::default()
-                }),
-                rename_provider: Some(lsp::OneOf::Right(lsp::RenameOptions {
-                    prepare_provider: Some(true),
-                    work_done_progress_options: lsp::WorkDoneProgressOptions {
-                        work_done_progress: Some(true),
-                    },
-                })),
-                execute_command_provider: Some(lsp::ExecuteCommandOptions {
-                    commands: vec![],
-                    ..Default::default()
-                }),
-                document_highlight_provider: Some(OneOf::Left(true)),
-                document_formatting_provider: Some(OneOf::Left(true)),
-                ..lsp::ServerCapabilities::default()
-            },
+            capabilities: capabilities(),
         })
     }
 

@@ -445,7 +445,7 @@ impl TypedReassignment {
 
 #[derive(Clone, Debug)]
 pub struct TypeCheckedStorageReassignment {
-    pub(crate) name: String,
+    pub(crate) name: Ident,
     pub(crate) ix: StateIndex,
     pub(crate) r#type: TypeId,
     pub(crate) lhs_span: Span,
@@ -453,20 +453,20 @@ pub struct TypeCheckedStorageReassignment {
 }
 
 impl TypeCheckedStorageReassignment {
-    pub(crate) fn rhs(&self) -> &TypedExpression {
-        &self.rhs
+    pub(crate) fn name(&self) -> &Ident {
+        &self.name
+    }
+    pub(crate) fn ix(&self) -> &StateIndex {
+        &self.ix
+    }
+    pub(crate) fn r#type(&self) -> &TypeId {
+        &self.r#type
     }
     pub(crate) fn lhs_span(&self) -> Span {
         self.lhs_span.clone()
     }
-    pub(crate) fn ix(&self) -> StateIndex {
-        self.ix
-    }
-    pub(crate) fn name(&self) -> String {
-        self.name.clone()
-    }
-    pub(crate) fn r#type(&self) -> TypeId {
-        self.r#type
+    pub(crate) fn rhs(&self) -> &TypedExpression {
+        &self.rhs
     }
 }
 

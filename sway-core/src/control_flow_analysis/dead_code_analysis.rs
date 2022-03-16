@@ -986,21 +986,18 @@ fn connect_expression(
             )?;
             Ok(prefix_idx)
         }
-        StorageAccess(field) => match field.field_name() {
-            Some(_field_name) => {
-                // Enable the code below once storage is added to the namespace
-                /* let storage_node = graph.namespace.storage.get(field_name).cloned();
-                let this_ix =
-                    graph.add_node(format!("storage field access: {}", field_name.as_str()).into());
-                for leaf in leaves {
-                    storage_node.map(|x| graph.add_edge(*leaf, x, "".into()));
-                    graph.add_edge(*leaf, this_ix, "".into());
-                }
-                Ok(vec![this_ix])*/
-                Ok(vec![])
+        StorageAccess(_field) => {
+            // Enable the code below once the storage declaration is added to the namespace
+            /* let storage_node = graph.namespace.storage.get(field).cloned();
+            let this_ix =
+                graph.add_node(format!("storage field access: {}", field.as_str()).into());
+            for leaf in leaves {
+                storage_node.map(|x| graph.add_edge(*leaf, x, "".into()));
+                graph.add_edge(*leaf, this_ix, "".into());
             }
-            None => Ok(leaves.to_vec()),
-        },
+            Ok(vec![this_ix])*/
+            Ok(vec![])
+        }
         SizeOf { variant } => match variant {
             SizeOfVariant::Type(_) => Ok(vec![]),
             SizeOfVariant::Val(exp) => {

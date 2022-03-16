@@ -106,13 +106,20 @@ pub(crate) enum TypedExpressionVariant {
 
 #[derive(Clone, Debug)]
 pub struct TypeCheckedStorageAccess {
-    pub(crate) field_ix_and_name: Option<(StateIndex, Ident)>,
-    pub(crate) field_to_access_span: Span,
+    pub(crate) name: Ident,
+    pub(crate) ix: StateIndex,
+    pub(crate) span: Span,
 }
 
 impl TypeCheckedStorageAccess {
-    pub fn field_name(&self) -> Option<&Ident> {
-        self.field_ix_and_name.as_ref().map(|(_, x)| x)
+    pub(crate) fn name(&self) -> &Ident {
+        &self.name
+    }
+    pub(crate) fn ix(&self) -> &StateIndex {
+        &self.ix
+    }
+    pub(crate) fn span(&self) -> &Span {
+        &self.span
     }
 }
 
@@ -237,10 +244,9 @@ impl TypedExpressionVariant {
                     format!("size_of({:?})", type_name.friendly_type_str())
                 }
             },
-            TypedExpressionVariant::StorageAccess(access) => match access.field_name() {
-                Some(name) => format!("storage field {} access", name.as_str()),
-                None => "storage struct access".into(),
-            },
+            TypedExpressionVariant::StorageAccess(access) => {
+                format!("storage field {} access", access.name().as_str())
+            }
         }
     }
     /// Makes a fresh copy of all type ids in this expression. Used when monomorphizing.

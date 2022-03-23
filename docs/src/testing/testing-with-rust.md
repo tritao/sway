@@ -26,8 +26,8 @@ For example, let's write tests against the following contract, written in Sway. 
 
 Our `tests/harness.rs` file could look like:
 
-```rust
-{{#include ../../../examples/hello_world/tests/harness.rs}}
+```rust,ignore 
+{{#rustdoc_include ../../../examples/hello_world/tests/harness.rs}}
 ```
 
 Then, in the root of our project, running `forc test` or `cargo test` will run the test above, compiling and deploying the contract to a local Fuel network, and calling the ABI methods against the contract deployed in there:

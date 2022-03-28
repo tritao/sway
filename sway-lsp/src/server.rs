@@ -228,13 +228,19 @@ impl LanguageServer for Backend {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use sway_utils::helpers;
     use std::{env, fs::File, io::Write};
     use tower::{Service, ServiceExt};
 
     use super::*;
-    use futures::stream::StreamExt;
-    use tower_lsp::jsonrpc::{self, Request, Response};
-    use tower_lsp::LspService;
+    use futures::{
+        stream::StreamExt,
+        FutureExt,
+    };
+    use tower_lsp::{
+        jsonrpc::{self, Request, Response},
+        LspService,
+    };
 
     // Simple sway script used for testing LSP capabilites
     const SWAY_PROGRAM: &str = r#"script;
@@ -269,6 +275,93 @@ fn main() {
     let p = ~Particle::new(position, velocity, acceleration, mass);
 }
 "#;
+
+
+
+    #[tokio::test]
+    async fn open_all_language_test_examples() {
+        use std::{
+            fs,
+            path::Path,
+            collections::BTreeMap,
+            io::Read,
+        };
+        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("failed to find sway directory");        
+        let examples_dir = root_dir
+            .join("test")
+            .join("src")
+            .join("e2e_vm_tests")
+            .join("test_programs")
+            .join("should_pass")
+            .join("language");
+
+        #[derive(Debug)]
+        struct SwayFile {
+            contents: String, 
+            uri: Url,
+        }
+
+        let mut projects = BTreeMap::new();
+
+        for res in fs::read_dir(examples_dir).expect("failed to walk examples directory") {
+            let entry = match res {
+                Ok(entry) => entry,
+                _ => continue,
+            };
+            let project_name = entry.file_name().to_ascii_uppercase().into_string().unwrap();
+            let src_dir = entry.path().join("src");
+             
+            let mut sway_files = Vec::new();
+            for res in fs::read_dir(src_dir).expect("failed to walk project src directory") {
+                let entry = match res {
+                    Ok(entry) => entry,
+                    _ => continue,
+                };
+                if helpers::is_sway_file(&entry.path()) {
+                    let mut file = File::open(entry.path()).unwrap();
+                    let mut contents = String::new();
+                    file.read_to_string(&mut contents).unwrap();
+                    let sway_file = SwayFile {
+                        contents: contents,
+                        uri: Url::from_file_path(entry.path()).unwrap(),
+                    };
+                    sway_files.push(sway_file);
+                }
+            }
+            projects.insert(project_name, sway_files);
+        }
+
+        
+
+        for (key, files) in projects {
+            // LSP 
+            let (mut service, mut messages) = LspService::new(Backend::new);
+            eprintln!("project = {}", key);
+
+            // send "initialize" request
+            let _ = initialize_request(&mut service).await;
+
+            // send "initialized" notification
+            initialized_notification(&mut service).await;
+
+            // ignore the "window/logMessage" notification: "Initializing the Sway Language Server"
+            messages.next().await.unwrap();
+
+            for file in files {
+                // send "textDocument/didOpen" notification for `uri`
+                did_open_notification(&mut service, &file.uri, &file.contents).await;
+            }
+
+            // ignore any pending "window/logMessage" notifications
+            messages.next().now_or_never();
+
+            // send "shutdown" request
+            let _ = shutdown_request(&mut service).await;
+
+            // send "exit" request
+            exit_notification(&mut service).await;
+        }
+    }
 
     fn load_test_sway_file(sway_file: &str) -> Url {
         let file_name = "tmp_sway_test_file.sw";

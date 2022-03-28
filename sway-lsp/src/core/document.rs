@@ -165,8 +165,13 @@ impl TextDocument {
                     v.push(index);
                 }
                 None => {
-                    self.values.insert(token_name, vec![index]);
+                    self.values.insert(token_name.clone(), vec![index]);
                 }
+            }
+
+            let len = self.values.get(&token_name).unwrap().len();
+            if len > 1 {
+                eprintln!("WE GOT 2 MATCHING TOKENS!")
             }
         }
     }

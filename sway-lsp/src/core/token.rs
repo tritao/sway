@@ -101,7 +101,6 @@ pub fn traverse_node(node: AstNode, tokens: &mut Vec<Token>) {
         // handle other content types
         AstNodeContent::UseStatement(_) => println_red_err("AstNodeContent::UseStatement").unwrap(),
         AstNodeContent::ReturnStatement(_) => println_red_err("AstNodeContent::ReturnStatement").unwrap(),
-        AstNodeContent::ImplicitReturnExpression(_) => println_red_err("AstNodeContent::ImplicitReturnExpression").unwrap(),
         AstNodeContent::WhileLoop(_) => println_red_err("AstNodeContent::WhileLoop").unwrap(),
         AstNodeContent::IncludeStatement(_) => println_red_err("AstNodeContent::IncludeStatement").unwrap(),
         _ => {}
@@ -131,8 +130,8 @@ fn handle_declaration(declaration: Declaration, tokens: &mut Vec<Token>) {
         Declaration::Reassignment(reassignment) => {
             let token_type = TokenType::Reassignment;
             let token = Token::from_span(reassignment.lhs_span(), token_type);
-            tokens.push(token);
             println_green_err(&format!("Declaration::Reassignment: name: {}", &token.name)).unwrap();
+            tokens.push(token);
             handle_expression(reassignment.rhs, tokens);
         }
 

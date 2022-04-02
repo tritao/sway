@@ -158,6 +158,10 @@ pub enum Expression {
         variant: DelayedResolutionVariant,
         span: Span,
     },
+    StorageAccessNew {
+        subfield: Box<Expression>, 
+        span: Span,
+    },
     StorageAccess {
         field_names: Vec<Ident>,
         span: Span,
@@ -310,6 +314,7 @@ impl Expression {
             ArrayIndex { span, .. } => span,
             DelayedMatchTypeResolution { span, .. } => span,
             StorageAccess { span, .. } => span,
+            StorageAccessNew { span, .. } => span,
             IfLet { span, .. } => span,
             SizeOfVal { span, .. } => span,
             SizeOfType { span, .. } => span,
@@ -1175,6 +1180,12 @@ impl Expression {
                     value: exp,
                 }
             }
+            Rule::storage_access_new => check!(
+                parse_storage_access_new(expr, config),
+                return err(warnings, errors),
+                warnings,
+                errors
+            ),
             Rule::struct_field_access => {
                 let inner = expr.into_inner().next().expect("guaranteed by grammar");
                 assert_eq!(inner.as_rule(), Rule::subfield_path);
@@ -1260,6 +1271,7 @@ impl Expression {
                 warnings,
                 errors
             ),
+            
             Rule::if_let_exp => check!(
                 parse_if_let(expr, config),
                 return err(warnings, errors),
@@ -1345,6 +1357,69 @@ fn convert_unary_to_fn_calls(
         };
     }
     ok(expr_result, warnings, errors)
+}
+
+pub(crate) fn parse_storage_access_new(
+    item: Pair<Rule>,
+    config: Option<&BuildConfig>,
+) -> CompileResult<ParserLifter<Expression>> {
+    debug_assert!(item.as_rule() == Rule::storage_access_new);
+    let mut warnings = vec![];
+    let mut errors = vec![];
+    let path = config.map(|c| c.path());
+    let span = item.as_span();
+    let span = Span { span, path: path.clone() };
+    let mut parts = item.into_inner();
+    let _storage_keyword = parts.next();
+
+    let inner = parts.next().expect("guaranteed by grammar");
+    assert_eq!(inner.as_rule(), Rule::subfield_path);
+
+    let mut name_parts = inner.into_inner();
+    let mut expr_result = check!(
+        parse_subfield_path(name_parts.next().expect("guaranteed by grammar"), config),
+        return err(warnings, errors),
+        warnings,
+        errors
+    );
+
+    for name_part in name_parts {
+        let new_expr = Expression::SubfieldExpression {
+            prefix: Box::new(expr_result.value.clone()),
+            span: Span {
+                span: name_part.as_span(),
+                path: path.clone(),
+            },
+            field_to_access: check!(
+                ident::parse_from_pair(name_part, config),
+                continue,
+                warnings,
+                errors
+            ),
+        };
+        expr_result = ParserLifter {
+            var_decls: expr_result.var_decls,
+            value: new_expr,
+        };
+    }
+
+    ok(ParserLifter {
+        var_decls: expr_result.var_decls,
+        value: Expression::StorageAccessNew {
+            subfield: Box::new(expr_result.value),
+            span
+        }
+    }, warnings, errors)
+ 
+    /*let exp = Expression::StorageAccess { field_names, span };
+    ok(
+        ParserLifter {
+            var_decls: vec![],
+            value: exp,
+        },
+        warnings,
+        errors,
+    )*/
 }
 
 pub(crate) fn parse_storage_access(

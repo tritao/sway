@@ -396,6 +396,7 @@ impl Dependencies {
             }
             Expression::TupleIndex { prefix, .. } => self.gather_from_expr(prefix),
             Expression::DelayedMatchTypeResolution { .. } => self,
+            Expression::StorageAccessNew { .. } => self,
             Expression::StorageAccess { .. } => self,
             Expression::IfLet { expr, .. } => self.gather_from_expr(expr),
             Expression::SizeOfVal { exp, .. } => self.gather_from_expr(exp),

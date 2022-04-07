@@ -1042,6 +1042,7 @@ fn reassignment(
                     field_to_access,
                     span,
                 } => {
+                    //                    dbg!(&prefix);
                     let mut expr = *prefix;
                     let mut names_vec = vec![];
                     let final_return_type = loop {
@@ -1062,9 +1063,19 @@ fn reassignment(
                             warnings,
                             errors
                         );
-
                         match expr {
                             Expression::VariableExpression { name, .. } => {
+                                if let Some(TypedDeclaration::VariableDeclaration(
+                                    TypedVariableDeclaration { is_mutable, .. },
+                                )) = namespace.clone().get_symbol(&name).value
+                                {
+                                    if !is_mutable.is_mutable() {
+                                        errors.push(CompileError::AssignmentToNonMutable(
+                                            name.as_str().to_string(),
+                                            span.clone(),
+                                        ));
+                                    }
+                                }
                                 names_vec.push(ReassignmentLhs {
                                     name,
                                     r#type: type_checked.return_type,

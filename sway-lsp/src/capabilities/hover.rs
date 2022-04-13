@@ -56,7 +56,7 @@ fn get_hover_format(token: &Token, documents: &Documents) -> Hover {
             )
         }
         TokenType::FunctionDeclaration(func_details) => func_details.signature.clone(),
-        TokenType::Struct(struct_details) => format!(
+        TokenType::StructDeclaration(struct_details) => format!(
             "{}struct {}",
             extract_visibility(&struct_details.visibility),
             &token.name

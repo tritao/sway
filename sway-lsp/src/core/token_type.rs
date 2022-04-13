@@ -10,7 +10,8 @@ pub enum TokenType {
     Reassignment,
     Enum,
     Trait(TraitDetails),
-    Struct(StructDetails),
+    StructDeclaration(StructDetails),
+    StructExpression,
 }
 
 pub fn get_function_details(func_dec: &FunctionDeclaration) -> FunctionDetails {

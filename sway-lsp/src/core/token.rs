@@ -141,7 +141,7 @@ fn handle_declaration(declaration: Declaration, tokens: &mut Vec<Token>) {
         Declaration::StructDeclaration(struct_dec) => {
             let ident = &struct_dec.name;
             let token =
-                Token::from_ident(ident, TokenType::Struct(get_struct_details(&struct_dec)));
+                Token::from_ident(ident, TokenType::StructDeclaration(get_struct_details(&struct_dec)));
             tokens.push(token);
         }
         Declaration::EnumDeclaration(enum_dec) => {
@@ -172,6 +172,11 @@ fn handle_expression(exp: Expression, tokens: &mut Vec<Token>) {
             for exp in arguments {
                 handle_expression(exp, tokens);
             }
+        }
+        Expression::StructExpression { struct_name, type_arguments, fields, span } => {
+            let ident = struct_name.suffix;
+            let token = Token::from_ident(&ident, TokenType::StructExpression);
+            tokens.push(token);
         }
         // TODO
         // handle other expressions

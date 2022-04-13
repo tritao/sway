@@ -16,7 +16,16 @@ pub struct TextDocument {
     uri: String,
     content: Rope,
     tokens: Vec<Token>,
+    /// Used to find the token associated with an lsp_types::Position input
+    /// using position.line & position.character
+    /// 
+    /// line number is the key
+    /// values are indices relating the self.tokens Vec
     lines: HashMap<u32, Vec<usize>>,
+    /// Used to find all occurances of a token by name
+    /// 
+    /// token name is the key
+    /// values are indices relating the self.tokens Vec
     values: HashMap<String, Vec<usize>>,
 }
 

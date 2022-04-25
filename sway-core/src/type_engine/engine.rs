@@ -256,11 +256,11 @@ impl Engine {
             }
 
             (
-                TypeInfo::ContractCaller {
+                ref r @ TypeInfo::ContractCaller {
                     abi_name: ref abi_name_a,
-                    address,
+                    ref address,
                 },
-                ref e @ TypeInfo::ContractCaller {
+                ref expected_info @ TypeInfo::ContractCaller {
                     abi_name: ref abi_name_b,
                     ..
                 },
@@ -268,25 +268,25 @@ impl Engine {
                 || matches!(abi_name_a, AbiName::Deferred) =>
             {
                 // if one address is empty, coerce to the other one
-                match self.slab.replace(expected, e, look_up_type_id(expected)) {
+                match self.slab.replace(received, r, expected_info.clone()) {
                     None => (vec![], vec![]),
                     Some(_) => self.unify(received, expected, span, help_text),
                 }
             }
             (
-                ref r @ TypeInfo::ContractCaller {
+                ref received_info @ TypeInfo::ContractCaller {
                     abi_name: ref abi_name_a,
                     ..
                 },
-                TypeInfo::ContractCaller {
+                ref e @ TypeInfo::ContractCaller {
                     abi_name: ref abi_name_b,
-                    address,
+                    ref address,
                 },
             ) if (abi_name_a == abi_name_b && address.is_empty())
                 || matches!(abi_name_b, AbiName::Deferred) =>
             {
                 // if one address is empty, coerce to the other one
-                match self.slab.replace(received, r, look_up_type_id(expected)) {
+                match self.slab.replace(expected, e, received_info.clone()) {
                     None => (vec![], vec![]),
                     Some(_) => self.unify(received, expected, span, help_text),
                 }

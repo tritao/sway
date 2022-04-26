@@ -53,6 +53,9 @@ fn create_semantic_token(next_token: &Token, prev_token: Option<&Token>) -> Sema
 
     let (delta_line, delta_start) = if let Some(prev_token) = prev_token {
         let delta_start = if next_token.line_start == prev_token.line_start {
+            eprintln!("next_token_start_char = {:?} | prev_token.range.start.character = {:?}", &next_token_start_char, &prev_token.range.start.character);
+            eprintln!("prev_token = {:?}", &prev_token.name);
+            eprintln!("next_token = {:?}", &next_token.name);
             next_token_start_char - prev_token.range.start.character
         } else {
             next_token_start_char

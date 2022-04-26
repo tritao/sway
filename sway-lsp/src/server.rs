@@ -253,6 +253,35 @@ mod tests {
     use tower_lsp::jsonrpc::{self, Request, Response};
     use tower_lsp::LspService;
 
+    #[tokio::test]
+    async fn run_asm_return_tuple_pointer_example() {
+        let (mut service, mut messages) = LspService::new(|client| Backend::new(client, config()));
+
+        // send "initialize" request
+        let _ = initialize_request(&mut service).await;
+
+        // send "initialized" notification
+        initialized_notification(&mut service).await;
+
+        // ignore the "window/logMessage" notification: "Initializing the Sway Language Server"
+        messages.next().await.unwrap();
+
+        let sway_program = include_str!("../../examples/asm_return_tuple_pointer/src/main.sw");
+        let uri = load_test_sway_file(sway_program);
+
+        // send "textDocument/didOpen" notification for `uri`
+        did_open_notification(&mut service, &uri, sway_program).await;
+
+        // send "textDocument/semanticTokens/full" request
+        let _ = semantic_tokens_request(&mut service, &uri).await;
+
+        // send "shutdown" request
+        let _ = shutdown_request(&mut service).await;
+
+        // send "exit" request
+        exit_notification(&mut service).await;
+    }
+
     // Simple sway script used for testing LSP capabilites
     const SWAY_PROGRAM: &str = r#"script;
 
@@ -356,6 +385,22 @@ fn main() {
 
     fn config() -> DebugFlags {
         Default::default()
+    }
+
+    async fn semantic_tokens_request(service: &mut LspService<Backend>, uri: &Url) -> Request {
+        let params = json!({
+            "textDocument": {
+                "uri": uri,
+            },
+        });
+        let semantic_tokens = Request::build("textDocument/semanticTokens/full")
+            .params(params)
+            .id(1)
+            .finish();
+        let response = service.ready().await.unwrap().call(semantic_tokens.clone()).await;
+        let ok = Response::from_ok(1.into(), json!(null));
+        assert_eq!(response, Ok(Some(ok)));
+        semantic_tokens
     }
 
     #[tokio::test]

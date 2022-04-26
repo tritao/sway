@@ -59,7 +59,7 @@ impl Token {
         let ident = &var_dec.name;
         let name = ident.as_str();
         let var_body = extract_var_body(var_dec);
-
+        
         Token::new(
             ident.span(),
             name.into(),
@@ -105,6 +105,7 @@ fn handle_declaration(declaration: Declaration, tokens: &mut Vec<Token>) {
     match declaration {
         Declaration::VariableDeclaration(variable) => {
             tokens.push(Token::from_variable(&variable));
+            eprintln!("variable = {:#?}", &variable);
             handle_expression(variable.body, tokens);
         }
         Declaration::FunctionDeclaration(func_dec) => {

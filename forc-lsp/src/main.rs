@@ -15,6 +15,9 @@ pub struct App {
     /// to parse.
     #[clap(long)]
     pub parsed_tokens_as_warnings: bool,
+    // #[clap(long)]
+    // /// Display the token information in the hover tooltip
+    // pub token_info_on_hover: bool,
 }
 
 #[tokio::main]
@@ -22,6 +25,7 @@ async fn main() {
     let app = App::parse();
     let dbg = sway_lsp::utils::debug::DebugFlags {
         parsed_tokens_as_warnings: app.parsed_tokens_as_warnings,
+        token_info_on_hover: true,//app.token_info_on_hover,
     };
     sway_lsp::start(dbg).await
 }

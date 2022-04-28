@@ -70,13 +70,15 @@ fn get_hover_format(token: &Token, documents: &Documents) -> Hover {
         _ => token.name.clone(),
     };
 
-    Hover {
-        contents: HoverContents::Markup(MarkupContent {
-            value: format!("```sway\n{}\n```", value),
-            kind: MarkupKind::Markdown,
-        }),
-        range: Some(token.range),
-    }
+    crate::utils::debug::format_token_for_hover_tooltip(&token, &value)
+
+    // Hover {
+    //     contents: HoverContents::Markup(MarkupContent {
+    //         value: format!("```sway\n{}\n```", value),
+    //         kind: MarkupKind::Markdown,
+    //     }),
+    //     range: Some(token.range),
+    // }
 }
 
 fn get_var_type_from_fn(fn_name: &str, documents: &Documents) -> String {

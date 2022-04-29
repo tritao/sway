@@ -339,7 +339,7 @@ impl TypedExpression {
                 type_arguments,
                 span,
             } => type_check_method_application(
-                method_name,
+                dbg!(method_name),
                 contract_call_params,
                 arguments,
                 type_arguments,
@@ -685,7 +685,7 @@ impl TypedExpression {
             ..
         } = arguments;
         let function_declaration = check!(
-            namespace.get_call_path(&name),
+            namespace.get_call_path(dbg!(&name)),
             return err(warnings, errors),
             warnings,
             errors

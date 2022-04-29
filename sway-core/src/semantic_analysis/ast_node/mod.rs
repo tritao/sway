@@ -1248,7 +1248,7 @@ fn type_check_trait_decl(
         visibility: trait_decl.visibility,
     });
     namespace.insert(trait_decl.name, typed_trait_decl.clone());
-    ok(typed_trait_decl, warnings, errors)
+    ok(dbg!(typed_trait_decl), warnings, errors)
 }
 
 fn type_check_interface_surface(

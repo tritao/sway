@@ -47,6 +47,7 @@ pub(crate) fn type_check_method_application(
         ));
     }
 
+    dbg!(&method_name);
     let method = match method_name {
         MethodName::FromType {
             ref call_path,

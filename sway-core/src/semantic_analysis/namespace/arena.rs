@@ -91,6 +91,7 @@ pub trait NamespaceWrapper {
     fn get_symbol(&self, symbol: &Ident) -> CompileResult<TypedDeclaration>;
     fn get_canonical_path(&self, symbol: &Ident) -> Vec<Ident>;
     fn find_enum(&self, enum_name: &Ident) -> Option<TypedEnumDeclaration>;
+    fn find_trait(&self, trait_name: &Ident) -> Option<TypedTraitDeclaration>;
     /// given a declaration that may refer to a variable which contains a struct,
     /// find that struct's fields and name for use in determining if a subfield expression is valid
     /// e.g. foo.bar.baz
@@ -276,6 +277,16 @@ impl NamespaceWrapper for NamespaceRef {
         match self.get_symbol(enum_name) {
             CompileResult {
                 value: Some(TypedDeclaration::EnumDeclaration(inner)),
+                ..
+            } => Some(inner),
+            _ => None,
+        }
+    }
+
+    fn find_trait(&self, trait_name: &Ident) -> Option<TypedTraitDeclaration> {
+        match self.get_symbol(trait_name) {
+            CompileResult {
+                value: Some(TypedDeclaration::TraitDeclaration(inner)),
                 ..
             } => Some(inner),
             _ => None,

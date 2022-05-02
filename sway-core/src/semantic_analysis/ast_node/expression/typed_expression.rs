@@ -684,6 +684,7 @@ impl TypedExpression {
             opts,
             ..
         } = arguments;
+        dbg!(&name);
         let function_declaration = check!(
             namespace.get_call_path(dbg!(&name)),
             return err(warnings, errors),
@@ -1753,6 +1754,24 @@ impl TypedExpression {
             (enum_module_combined_result, namespace)
         };
 
+        let (trait_module_combined_result, trait_module_combined_result_module) = {
+            // also, check if this is an trait _in_ another module.
+            let (module_path, trait_name) =
+                call_path.prefixes.split_at(call_path.prefixes.len() - 1);
+            let trait_name = trait_name[0].clone();
+            let namespace = namespace.find_module_relative(module_path);
+            let namespace = namespace.ok(&mut warnings, &mut errors);
+            let trait_module_combined_result = namespace.and_then(|ns| ns.find_trait(&trait_name));
+            (trait_module_combined_result, namespace)
+        };
+
+
+        dbg!(&module_result);
+        dbg!(&enum_module_combined_result);
+        dbg!(&enum_module_combined_result_module);
+        dbg!(&trait_module_combined_result);
+        dbg!(&trait_module_combined_result_module);
+
         // now we can see if this thing is a symbol (typed declaration) or reference to an
         // enum instantiation, and if it is not either of those things, then it might be a
         // function application
@@ -1817,7 +1836,10 @@ impl TypedExpression {
                     return err(warnings, errors);
                 }
             },
-            (None, Some(enum_decl)) => check!(
+            (None, Some(enum_decl)) => {
+                dbg!("HERE?"); 
+                dbg!(&enum_decl);
+                check!(
                 instantiate_enum(
                     enum_module_combined_result_module.unwrap(),
                     enum_decl,
@@ -1834,7 +1856,7 @@ impl TypedExpression {
                 return err(warnings, errors),
                 warnings,
                 errors
-            ),
+            )},
             (None, None) => {
                 errors.push(CompileError::SymbolNotFound {
                     name: call_path.suffix.as_str().to_string(),

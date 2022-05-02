@@ -31,11 +31,11 @@ pub(crate) fn order_ast_nodes_by_dependency(nodes: Vec<AstNode>) -> CompileResul
         // reordered declarations, then anything else.  To keep the list stable and simple we can
         // use a basic insertion sort.
         ok(
-            nodes
+            dbg!(nodes
                 .into_iter()
                 .fold(Vec::<AstNode>::new(), |ordered, node| {
                     insert_into_ordered_nodes(&decl_dependencies, ordered, node)
-                }),
+                })),
             Vec::new(),
             Vec::new(),
         )

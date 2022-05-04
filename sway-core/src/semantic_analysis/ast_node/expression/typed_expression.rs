@@ -6,6 +6,7 @@ use crate::{
     semantic_analysis::ast_node::*,
     type_engine::{insert_type, AbiName, IntegerBits},
 };
+use std::collections::VecDeque;
 
 mod method_application;
 use crate::type_engine::TypeId;
@@ -1805,22 +1806,52 @@ impl TypedExpression {
                 let (smaller_module_path, type_name) =
                     call_path.prefixes.split_at(call_path.prefixes.len() - 1);
                 let type_name = type_name[0].clone();
-                let smaller_module =
-                    namespace.find_module_relative(smaller_module_path);
-                let smaller_module =
-                    smaller_module.ok(&mut warnings, &mut errors);
+                let smaller_module = namespace.find_module_relative(smaller_module_path);
+                let smaller_module = smaller_module.ok(&mut warnings, &mut errors);
 
                 match smaller_module {
                     Some(module) => {
                         match module.get_symbol(&type_name).value {
-                            Some(TypedDeclaration::EnumDeclaration(enum_decl)) =>
+                            Some(TypedDeclaration::EnumDeclaration(enum_decl)) => check!(
+                                instantiate_enum(
+                                    smaller_module.unwrap(),
+                                    enum_decl,
+                                    call_path.suffix,
+                                    args,
+                                    type_arguments,
+                                    namespace,
+                                    crate_namespace,
+                                    self_type,
+                                    build_config,
+                                    dead_code_graph,
+                                    opts,
+                                ),
+                                return err(warnings, errors),
+                                warnings,
+                                errors
+                            ),
+                            Some(TypedDeclaration::StructDeclaration(struct_decl)) => {
+                                let methods = module.get_methods_for_type(struct_decl.type_id());
+                                let func_call = check!(
+                                    module.find_method_for_type(
+                                        struct_decl.type_id(),
+                                        &call_path.suffix,
+                                        &vec![],
+                                        Some(module),
+                                        self_type,
+                                        &VecDeque::new()
+                                    ),
+                                    return err(warnings, errors),
+                                    warnings,
+                                    errors
+                                );
+
                                 check!(
-                                    instantiate_enum(
-                                        smaller_module.unwrap(),
-                                        enum_decl,
-                                        call_path.suffix,
+                                    instantiate_function_application(
+                                        func_call,
+                                        call_path,
+                                        vec!(), // the type args in this position are guarenteed to be empty due to parsing
                                         args,
-                                        type_arguments,
                                         namespace,
                                         crate_namespace,
                                         self_type,
@@ -1831,11 +1862,7 @@ impl TypedExpression {
                                     return err(warnings, errors),
                                     warnings,
                                     errors
-                                ),
-                            Some(TypedDeclaration::StructDeclaration(struct_decl)) => {
-                                let methods = module.get_methods_for_type(struct_decl.type_id());
-                                dbg!(&methods);
-                                todo!();
+                                )
                             }
                             _ => {
                                 errors.push(CompileError::SymbolNotFound {
@@ -1845,7 +1872,7 @@ impl TypedExpression {
                                 return err(warnings, errors);
                             }
                         }
-                    } 
+                    }
                     None => {
                         errors.push(CompileError::SymbolNotFound {
                             name: call_path.suffix.as_str().to_string(),
@@ -1858,136 +1885,6 @@ impl TypedExpression {
         };
 
         ok(exp, warnings, errors)
-
-        /*let (enum_module_combined_result, enum_module_combined_result_module) = {
-            // also, check if this is an enum _in_ another module.
-            let (module_path, enum_name) =
-                call_path.prefixes.split_at(call_path.prefixes.len() - 1);
-            let enum_name = enum_name[0].clone();
-            let namespace = namespace.find_module_relative(module_path);
-            let namespace = namespace.ok(&mut warnings, &mut errors);
-            let enum_module_combined_result = namespace.and_then(|ns| ns.find_enum(&enum_name));
-            (enum_module_combined_result, namespace)
-        };
-
-        if let TypedDeclaration::StructDeclaration(decl)
-            = namespace.get_symbol(&call_path.prefixes[0]).value.unwrap() {
-            dbg!(&decl);
-            let methods = namespace.get_methods_for_type(decl.type_id());
-            dbg!(&methods);
-            let exp = check!(
-                instantiate_function_application(
-                    methods[0].clone(),
-                    call_path,
-                    vec!(), // the type args in this position are guarenteed to be empty due to parsing
-                    args,
-                    namespace,
-                    crate_namespace,
-                    self_type,
-                    build_config,
-                    dead_code_graph,
-                    opts,
-                ),
-                return err(warnings, errors),
-                warnings,
-                errors
-            );
-            return ok(exp, warnings, errors);
-        }
-
-        // now we can see if this thing is a symbol (typed declaration) or reference to an
-        // enum instantiation, and if it is not either of those things, then it might be a
-        // function application
-        let exp: TypedExpression = match (module_result, enum_module_combined_result) {
-            (Some(_module), Some(_enum_res)) => {
-                errors.push(CompileError::AmbiguousPath { span });
-                return err(warnings, errors);
-            }
-            (Some(module), None) => match module.get_symbol(&call_path.suffix).value {
-                Some(decl) => match decl {
-                    TypedDeclaration::EnumDeclaration(enum_decl) => {
-                        check!(
-                            instantiate_enum(
-                                module,
-                                enum_decl,
-                                call_path.suffix,
-                                args,
-                                type_arguments,
-                                namespace,
-                                crate_namespace,
-                                self_type,
-                                build_config,
-                                dead_code_graph,
-                                opts,
-                            ),
-                            return err(warnings, errors),
-                            warnings,
-                            errors
-                        )
-                    }
-                    TypedDeclaration::FunctionDeclaration(func_decl) => check!(
-                        instantiate_function_application(
-                            func_decl,
-                            call_path,
-                            vec!(), // the type args in this position are guarenteed to be empty due to parsing
-                            args,
-                            namespace,
-                            crate_namespace,
-                            self_type,
-                            build_config,
-                            dead_code_graph,
-                            opts,
-                        ),
-                        return err(warnings, errors),
-                        warnings,
-                        errors
-                    ),
-                    a => {
-                        errors.push(CompileError::NotAnEnum {
-                            name: call_path.friendly_name(),
-                            span,
-                            actually: a.friendly_name().to_string(),
-                        });
-                        return err(warnings, errors);
-                    }
-                },
-                None => {
-                    errors.push(CompileError::SymbolNotFound {
-                        name: call_path.suffix.as_str().to_string(),
-                        span: call_path.suffix.span().clone(),
-                    });
-                    return err(warnings, errors);
-                }
-            },
-            (None, Some(enum_decl)) => {
-                dbg!("HERE?");
-                dbg!(&enum_decl);
-                check!(
-                instantiate_enum(
-                    enum_module_combined_result_module.unwrap(),
-                    enum_decl,
-                    call_path.suffix,
-                    args,
-                    type_arguments,
-                    namespace,
-                    crate_namespace,
-                    self_type,
-                    build_config,
-                    dead_code_graph,
-                    opts,
-                ),
-                return err(warnings, errors),
-                warnings,
-                errors
-            )},
-            (None, None) => {
-                errors.push(CompileError::SymbolNotFound {
-                    name: call_path.suffix.as_str().to_string(),
-                    span: call_path.suffix.span().clone(),
-                });
-                return err(warnings, errors);
-            }
-        };*/
     }
 
     #[allow(clippy::too_many_arguments)]

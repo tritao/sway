@@ -1322,7 +1322,7 @@ fn expr_to_expression(ec: &mut ErrorContext, expr: Expr) -> Result<Expression, E
             };
             match storage_access_field_names_opt {
                 Some(field_names) => {
-//                    let field_names = field_names.into_iter().rev().cloned().collect();
+                    //                    let field_names = field_names.into_iter().rev().cloned().collect();
                     let mut full_bytes = [0u8; 32];
                     dbg!(Expression::MethodApplication {
                         method_name: MethodName::FromType {
@@ -1338,8 +1338,7 @@ fn expr_to_expression(ec: &mut ErrorContext, expr: Expr) -> Result<Expression, E
                             type_name_span: None,
                         },
                         contract_call_params: Vec::new(),
-                        arguments: vec![
-                        Expression::Literal {
+                        arguments: vec![Expression::Literal {
                             value: Literal::B256(full_bytes),
                             span: span.clone(),
                         }],

@@ -1743,7 +1743,123 @@ impl TypedExpression {
         let module_result = namespace
             .find_module_relative(&call_path.prefixes)
             .ok(&mut probe_warnings, &mut probe_errors);
-        let (enum_module_combined_result, enum_module_combined_result_module) = {
+
+        let exp: TypedExpression = match module_result {
+            Some(module) => match module.get_symbol(&call_path.suffix).value {
+                Some(decl) => match decl {
+                    TypedDeclaration::EnumDeclaration(enum_decl) => {
+                        check!(
+                            instantiate_enum(
+                                module,
+                                enum_decl,
+                                call_path.suffix,
+                                args,
+                                type_arguments,
+                                namespace,
+                                crate_namespace,
+                                self_type,
+                                build_config,
+                                dead_code_graph,
+                                opts,
+                            ),
+                            return err(warnings, errors),
+                            warnings,
+                            errors
+                        )
+                    }
+                    TypedDeclaration::FunctionDeclaration(func_decl) => check!(
+                        instantiate_function_application(
+                            func_decl,
+                            call_path,
+                            vec!(), // the type args in this position are guarenteed to be empty due to parsing
+                            args,
+                            namespace,
+                            crate_namespace,
+                            self_type,
+                            build_config,
+                            dead_code_graph,
+                            opts,
+                        ),
+                        return err(warnings, errors),
+                        warnings,
+                        errors
+                    ),
+                    a => {
+                        errors.push(CompileError::NotAnEnum {
+                            name: call_path.friendly_name(),
+                            span,
+                            actually: a.friendly_name().to_string(),
+                        });
+                        return err(warnings, errors);
+                    }
+                },
+                None => {
+                    errors.push(CompileError::SymbolNotFound {
+                        name: call_path.suffix.as_str().to_string(),
+                        span: call_path.suffix.span().clone(),
+                    });
+                    return err(warnings, errors);
+                }
+            },
+            None => {
+                let (smaller_module_path, type_name) =
+                    call_path.prefixes.split_at(call_path.prefixes.len() - 1);
+                let type_name = type_name[0].clone();
+                let smaller_module =
+                    namespace.find_module_relative(smaller_module_path);
+                let smaller_module =
+                    smaller_module.ok(&mut warnings, &mut errors);
+
+                match smaller_module {
+                    Some(module) => {
+                        match module.get_symbol(&type_name).value {
+                            Some(TypedDeclaration::EnumDeclaration(enum_decl)) =>
+                                check!(
+                                    instantiate_enum(
+                                        smaller_module.unwrap(),
+                                        enum_decl,
+                                        call_path.suffix,
+                                        args,
+                                        type_arguments,
+                                        namespace,
+                                        crate_namespace,
+                                        self_type,
+                                        build_config,
+                                        dead_code_graph,
+                                        opts,
+                                    ),
+                                    return err(warnings, errors),
+                                    warnings,
+                                    errors
+                                ),
+                            Some(TypedDeclaration::StructDeclaration(struct_decl)) => {
+                                let methods = module.get_methods_for_type(struct_decl.type_id());
+                                dbg!(&methods);
+                                todo!();
+                            }
+                            _ => {
+                                errors.push(CompileError::SymbolNotFound {
+                                    name: call_path.suffix.as_str().to_string(),
+                                    span: call_path.suffix.span().clone(),
+                                });
+                                return err(warnings, errors);
+                            }
+                        }
+                    } 
+                    None => {
+                        errors.push(CompileError::SymbolNotFound {
+                            name: call_path.suffix.as_str().to_string(),
+                            span: call_path.suffix.span().clone(),
+                        });
+                        return err(warnings, errors);
+                    }
+                }
+            }
+        };
+
+        ok(exp, warnings, errors)
+
+        /*let (enum_module_combined_result, enum_module_combined_result_module) = {
             // also, check if this is an enum _in_ another module.
             let (module_path, enum_name) =
                 call_path.prefixes.split_at(call_path.prefixes.len() - 1);
@@ -1844,7 +1960,7 @@ impl TypedExpression {
                 }
             },
             (None, Some(enum_decl)) => {
-                dbg!("HERE?"); 
+                dbg!("HERE?");
                 dbg!(&enum_decl);
                 check!(
                 instantiate_enum(
@@ -1871,9 +1987,7 @@ impl TypedExpression {
                 });
                 return err(warnings, errors);
             }
-        };
-
-        ok(exp, warnings, errors)
+        };*/
     }
 
     #[allow(clippy::too_many_arguments)]

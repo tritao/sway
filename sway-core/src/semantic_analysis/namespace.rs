@@ -64,7 +64,7 @@ impl Namespace {
         ok((), vec![], vec![])
     }
 
-    pub fn get_all_declared_symbols(&self) -> impl Iterator<Item = &TypedDeclaration> {
+    pub(crate) fn get_all_declared_symbols(&self) -> impl Iterator<Item = &TypedDeclaration> {
         self.symbols.values()
     }
 

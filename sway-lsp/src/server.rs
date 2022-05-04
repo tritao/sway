@@ -113,6 +113,7 @@ impl LanguageServer for Backend {
         Ok(InitializeResult {
             server_info: None,
             capabilities: capabilities(),
+            ..Default::default()
         })
     }
 

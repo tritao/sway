@@ -72,6 +72,7 @@ fn capabilities() -> ServerCapabilities {
         }),
         document_highlight_provider: Some(OneOf::Left(true)),
         document_formatting_provider: Some(OneOf::Left(true)),
+        inlay_hint_provider: Some(OneOf::Left(true)),
         ..ServerCapabilities::default()
     }
 }

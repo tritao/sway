@@ -542,6 +542,9 @@ fn item_impl_to_declaration(
             .collect::<Result<_, _>>()?
     };
     let type_parameters = generic_params_opt_to_type_parameters(item_impl.generic_params_opt);
+
+    dbg!(&item_impl.where_clause_opt);
+
     match item_impl.trait_opt {
         Some((path_type, _for_token)) => {
             let impl_trait = ImplTrait {

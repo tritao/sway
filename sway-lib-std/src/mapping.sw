@@ -8,6 +8,10 @@ pub struct Mapping {
 }
 
 impl Mapping {
+    fn new() -> Mapping {
+        Mapping { seed_key: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+    }
+
     fn insert(self, key: u64, value: u64) {
         let key_hash = hash_u64(key, HashMethod::Sha256);
         let hash_with_seed = hash_pair(key_hash, self.seed_key, HashMethod::Sha256);

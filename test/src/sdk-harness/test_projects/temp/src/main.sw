@@ -4,7 +4,7 @@ pub struct MyStruct {
     value: u64,
 }
 
-impl ASomeStruct {
+impl MyStruct {
     fn some_func(self, a: u64) -> MyStruct {
         MyStruct {
             value: self.value + a

@@ -473,13 +473,45 @@ impl TypedAstNode {
                             type_parameters,
                             ..
                         }) => {
+                            // Make sure each type parameter is able to call any methods from its
+                            // corresponding trait constraints
                             for type_parameter in type_parameters.iter() {
-                                if !type_parameter.trait_constraints.is_empty() {
-                                    errors.push(CompileError::Internal(
-                                        "Where clauses are not supported yet.",
-                                        type_parameter.name_ident.span().clone(),
-                                    ));
-                                    break;
+                                for trait_constraint in type_parameter.trait_constraints.iter() {
+                                    match namespace
+                                        .resolve_call_path(&trait_constraint.name)
+                                        .ok(&mut warnings, &mut errors)
+                                        .cloned()
+                                    {
+                                        Some(TypedDeclaration::TraitDeclaration(
+                                            TypedTraitDeclaration {
+                                                ref interface_surface,
+                                                //ref methods,
+                                                ..
+                                            },
+                                        )) => {
+                                            let r#type = check!(
+                                                namespace.resolve_type_without_self(
+                                                    &TypeInfo::UnknownGeneric {
+                                                        name: type_parameter.name_ident.clone(),
+                                                    }
+                                                ),
+                                                return err(warnings, errors),
+                                                warnings,
+                                                errors
+                                            );
+                                            namespace.insert_trait_implementation(
+                                                trait_constraint.name.clone(),
+                                                dbg!(look_up_type_id(r#type)),
+                                                interface_surface
+                                                    .iter()
+                                                    .map(|x| x.to_dummy_func(Mode::NonAbi))
+                                                    .collect(),
+                                            );
+                                        }
+                                        _ => errors.push(CompileError::TraitNotFound {
+                                            name: trait_constraint.name.clone(),
+                                        }),
+                                    }
                                 }
                             }
 
@@ -538,6 +570,7 @@ impl TypedAstNode {
                                     errors
                                 ));
                             }
+
                             let trait_name = CallPath {
                                 prefixes: vec![],
                                 suffix: Ident::new_with_override("r#Self", block_span.clone()),

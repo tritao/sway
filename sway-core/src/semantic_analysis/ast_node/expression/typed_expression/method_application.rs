@@ -302,12 +302,12 @@ pub(crate) fn type_check_method_application(
                 selector,
             };
 
-            TypedExpression {
+            dbg!(TypedExpression {
                 expression,
                 return_type: method.return_type,
                 is_constant: IsConstant::No,
                 span,
-            }
+            })
         }
 
         // something like blah::blah::~Type::foo()

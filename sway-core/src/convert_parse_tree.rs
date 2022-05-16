@@ -11,8 +11,8 @@ use {
         MatchBranch, MatchCondition, MethodName, ParseTree, Purity, Reassignment,
         ReassignmentTarget, ReturnStatement, Scrutinee, StorageDeclaration, StorageField,
         StructDeclaration, StructExpressionField, StructField, StructScrutineeField, Supertrait,
-        SwayParseTree, TraitDeclaration, TraitFn, TreeType, TypeArgument, TypeInfo, TypeParameter,
-        UseStatement, VariableDeclaration, Visibility, WhileLoop,
+        SwayParseTree, TraitConstraint, TraitDeclaration, TraitFn, TreeType, TypeArgument,
+        TypeInfo, TypeParameter, UseStatement, VariableDeclaration, Visibility, WhileLoop,
     },
     std::{convert::TryFrom, iter, mem::MaybeUninit, ops::ControlFlow},
     sway_parse::{
@@ -23,7 +23,7 @@ use {
         ItemStorage, ItemStruct, ItemTrait, ItemUse, LitInt, LitIntType, MatchBranchKind, PathExpr,
         PathExprSegment, PathType, PathTypeSegment, Pattern, PatternStructField, Program,
         ProgramKind, PubToken, QualifiedPathRoot, Statement, StatementLet, Traits, Ty, TypeField,
-        UseTree,
+        UseTree, WhereClause,
     },
     sway_types::{Ident, Span},
     thiserror::Error,
@@ -172,6 +172,8 @@ pub enum ConvertParseTreeError {
     ContractCallerOneGenericArg { span: Span },
     #[error("ContractCaller requires a named type for its generic argument")]
     ContractCallerNamedTypeGenericArg { span: Span },
+    #[error("Trait constraint was applied to generic type that is not in scope")]
+    ConstrainedNonExistentType { span: Span },
 }
 
 impl ConvertParseTreeError {
@@ -219,6 +221,7 @@ impl ConvertParseTreeError {
             ConvertParseTreeError::FullySpecifiedTypesNotSupported { span } => span.clone(),
             ConvertParseTreeError::ContractCallerOneGenericArg { span } => span.clone(),
             ConvertParseTreeError::ContractCallerNamedTypeGenericArg { span } => span.clone(),
+            ConvertParseTreeError::ConstrainedNonExistentType { span } => span.clone(),
         }
     }
 }
@@ -432,7 +435,7 @@ fn item_struct_to_struct_declaration(
                 .map(|type_field| type_field_to_struct_field(ec, type_field))
                 .collect::<Result<_, _>>()?
         },
-        type_parameters: generic_params_opt_to_type_parameters(item_struct.generics),
+        type_parameters: generic_params_opt_to_type_parameters(ec, item_struct.generics, None)?,
         visibility: pub_token_opt_to_visibility(item_struct.visibility),
         span,
     };
@@ -446,7 +449,7 @@ fn item_enum_to_enum_declaration(
     let span = item_enum.span();
     let enum_declaration = EnumDeclaration {
         name: item_enum.name,
-        type_parameters: generic_params_opt_to_type_parameters(item_enum.generics),
+        type_parameters: generic_params_opt_to_type_parameters(ec, item_enum.generics, None)?,
         variants: {
             item_enum
                 .fields
@@ -485,7 +488,11 @@ fn item_fn_to_function_declaration(
             Some((_right_arrow, ty)) => ty_to_type_info(ec, ty)?,
             None => TypeInfo::Tuple(Vec::new()),
         },
-        type_parameters: generic_params_opt_to_type_parameters(item_fn.fn_signature.generics),
+        type_parameters: generic_params_opt_to_type_parameters(
+            ec,
+            item_fn.fn_signature.generics,
+            None,
+        )?,
         return_type_span,
     })
 }
@@ -541,9 +548,12 @@ fn item_impl_to_declaration(
             .map(|item_fn| item_fn_to_function_declaration(ec, item_fn))
             .collect::<Result<_, _>>()?
     };
-    let type_parameters = generic_params_opt_to_type_parameters(item_impl.generic_params_opt);
 
-    dbg!(&item_impl.where_clause_opt);
+    let type_parameters = generic_params_opt_to_type_parameters(
+        ec,
+        item_impl.generic_params_opt,
+        item_impl.where_clause_opt,
+    )?;
 
     match item_impl.trait_opt {
         Some((path_type, _for_token)) => {
@@ -648,14 +658,38 @@ fn type_field_to_struct_field(
     Ok(struct_field)
 }
 
+fn traits_to_supertraits(
+    ec: &mut ErrorContext,
+    traits: Traits,
+) -> Result<Vec<Supertrait>, ErrorEmitted> {
+    let mut supertraits = vec![path_type_to_supertrait(ec, traits.prefix)?];
+    for (_add_token, suffix) in traits.suffixes {
+        let supertrait = path_type_to_supertrait(ec, suffix)?;
+        supertraits.push(supertrait);
+    }
+    Ok(supertraits)
+}
+
 fn generic_params_opt_to_type_parameters(
+    ec: &mut ErrorContext,
     generic_params_opt: Option<GenericParams>,
-) -> Vec<TypeParameter> {
+    where_clause_opt: Option<WhereClause>,
+) -> Result<Vec<TypeParameter>, ErrorEmitted> {
     let generic_params = match generic_params_opt {
         Some(generic_params) => generic_params,
-        None => return Vec::new(),
+        None => return Ok(Vec::new()),
     };
-    generic_params
+
+    let trait_constraints = match where_clause_opt {
+        Some(where_clause) => where_clause
+            .bounds
+            .into_iter()
+            .map(|where_bound| (where_bound.ty_name, where_bound.bounds))
+            .collect::<Vec<_>>(),
+        None => Vec::new(),
+    };
+
+    let mut params = generic_params
         .parameters
         .into_inner()
         .into_iter()
@@ -667,7 +701,34 @@ fn generic_params_opt_to_type_parameters(
             name_ident: ident,
             trait_constraints: Vec::new(),
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    for (ty_name, bounds) in trait_constraints.into_iter() {
+        let param_to_edit = match params
+            .iter_mut()
+            .find(|TypeParameter { name_ident, .. }| name_ident.as_str() == ty_name.as_str())
+        {
+            Some(o) => o,
+            None => {
+                let error = ConvertParseTreeError::ConstrainedNonExistentType {
+                    span: bounds.span(),
+                };
+                return Err(ec.error(error));
+            }
+        };
+
+        param_to_edit
+            .trait_constraints
+            .extend(
+                traits_to_call_paths(ec, bounds)?
+                    .iter()
+                    .map(|call_path| TraitConstraint {
+                        name: call_path.clone(),
+                    }),
+            );
+    }
+
+    Ok(params)
 }
 
 fn pub_token_opt_to_visibility(pub_token_opt: Option<PubToken>) -> Visibility {
@@ -820,16 +881,16 @@ fn fn_signature_to_trait_fn(
     Ok(trait_fn)
 }
 
-fn traits_to_supertraits(
+fn traits_to_call_paths(
     ec: &mut ErrorContext,
     traits: Traits,
-) -> Result<Vec<Supertrait>, ErrorEmitted> {
-    let mut supertraits = vec![path_type_to_supertrait(ec, traits.prefix)?];
+) -> Result<Vec<CallPath>, ErrorEmitted> {
+    let mut call_paths = vec![path_type_to_call_path(ec, traits.prefix)?];
     for (_add_token, suffix) in traits.suffixes {
-        let supertrait = path_type_to_supertrait(ec, suffix)?;
-        supertraits.push(supertrait);
+        let supertrait = path_type_to_call_path(ec, suffix)?;
+        call_paths.push(supertrait);
     }
-    Ok(supertraits)
+    Ok(call_paths)
 }
 
 fn path_type_to_call_path(

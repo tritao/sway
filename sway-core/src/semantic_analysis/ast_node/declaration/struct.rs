@@ -36,6 +36,8 @@ impl TypedStructDeclaration {
         type_arguments: &[TypeArgument],
         self_type: Option<TypeId>,
     ) -> CompileResult<Self> {
+        dbg!(&self);
+        dbg!(&type_arguments);
         let mut warnings = vec![];
         let mut errors = vec![];
         let type_mapping = insert_type_parameters(&self.type_parameters);

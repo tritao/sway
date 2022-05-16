@@ -1,6 +1,9 @@
 use crate::{
-    build_config::BuildConfig, error::*, parse_tree::ident, type_engine::*, CompileError, Rule,
-    TypedDeclaration,
+    build_config::BuildConfig,
+    error::*,
+    parse_tree::{ident, CallPath},
+    type_engine::*,
+    CompileError, Rule, TypedDeclaration,
 };
 
 use sway_types::{ident::Ident, span::Span};
@@ -102,7 +105,11 @@ impl TypeParameter {
                         };
 
                     param_to_edit.trait_constraints.push(TraitConstraint {
-                        name: where_clause.trait_constraint,
+                        name: CallPath {
+                            prefixes: vec![],
+                            suffix: where_clause.trait_constraint,
+                            is_absolute: false,
+                        },
                     });
                 }
                 params
@@ -154,7 +161,7 @@ impl TypeParameter {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(crate) struct TraitConstraint {
-    pub(crate) name: Ident,
+    pub(crate) name: CallPath,
 }
 
 pub(crate) struct WhereClause {

@@ -501,7 +501,7 @@ impl TypedAstNode {
                                             );
                                             namespace.insert_trait_implementation(
                                                 trait_constraint.name.clone(),
-                                                dbg!(look_up_type_id(r#type)),
+                                                look_up_type_id(r#type),
                                                 interface_surface
                                                     .iter()
                                                     .map(|x| x.to_dummy_func(Mode::NonAbi))

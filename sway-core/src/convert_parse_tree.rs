@@ -435,7 +435,7 @@ fn item_struct_to_struct_declaration(
                 .map(|type_field| type_field_to_struct_field(ec, type_field))
                 .collect::<Result<_, _>>()?
         },
-        type_parameters: generic_params_opt_to_type_parameters(ec, item_struct.generics, None)?,
+        type_parameters: generic_params_opt_to_type_parameters(ec, item_struct.generics, item_struct.where_clause_opt)?,
         visibility: pub_token_opt_to_visibility(item_struct.visibility),
         span,
     };

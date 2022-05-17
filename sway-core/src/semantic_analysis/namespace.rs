@@ -254,7 +254,7 @@ impl Items {
                 .iter_mut()
                 .for_each(|method| method.copy_types(type_mapping));
             self.implemented_traits
-                .insert(trait_name, new_type.clone(), trait_methods);
+                .insert(trait_name, dbg!(new_type.clone()), dbg!(trait_methods));
         }
     }
 

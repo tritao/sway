@@ -268,6 +268,7 @@ impl TypedFunctionDeclaration {
         type_arguments: Vec<TypeArgument>,
         self_type: TypeId,
     ) -> CompileResult<TypedFunctionDeclaration> {
+        dbg!("HERE6");
         let mut warnings: Vec<CompileWarning> = vec![];
         let mut errors: Vec<CompileError> = vec![];
         debug_assert!(

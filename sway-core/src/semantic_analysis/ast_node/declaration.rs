@@ -283,6 +283,7 @@ impl PartialEq for TypedEnumDeclaration {
 
 impl TypedEnumDeclaration {
     pub(crate) fn monomorphize(&self, namespace: &mut namespace::Items) -> Self {
+        dbg!("HERE1");
         let type_mapping = insert_type_parameters(&self.type_parameters);
         Self::monomorphize_inner(self, namespace, &type_mapping)
     }
@@ -293,6 +294,7 @@ impl TypedEnumDeclaration {
         type_arguments: &[TypeArgument],
         self_type: Option<TypeId>,
     ) -> CompileResult<Self> {
+        dbg!("HERE2");
         let mut warnings = vec![];
         let mut errors = vec![];
         let type_mapping = insert_type_parameters(&self.type_parameters);
@@ -359,6 +361,7 @@ impl TypedEnumDeclaration {
         namespace: &mut namespace::Items,
         type_mapping: &[(TypeParameter, TypeId)],
     ) -> Self {
+        dbg!("HERE3");
         let old_type_id = self.type_id();
         let mut new_decl = self.clone();
         new_decl.copy_types(type_mapping);

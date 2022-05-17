@@ -36,12 +36,15 @@ impl TypedStructDeclaration {
         type_arguments: &[TypeArgument],
         self_type: Option<TypeId>,
     ) -> CompileResult<Self> {
+        dbg!("HERE4");
         dbg!(&self);
         dbg!(&type_arguments);
         let mut warnings = vec![];
         let mut errors = vec![];
         let type_mapping = insert_type_parameters(&self.type_parameters);
-        let mut new_decl = Self::monomorphize_inner(self, namespace, &type_mapping);
+        dbg!(&self.type_parameters);
+        dbg!(namespace.get_methods_for_type(self.type_parameters[0].type_id));
+        let mut new_decl = Self::monomorphize_inner(self, namespace, dbg!(&type_mapping));
         let type_arguments_span = type_arguments
             .iter()
             .map(|x| x.span.clone())
@@ -105,6 +108,7 @@ impl TypedStructDeclaration {
         namespace: &mut namespace::Items,
         type_mapping: &[(TypeParameter, TypeId)],
     ) -> Self {
+        dbg!("HERE5");
         let old_type_id = self.type_id();
         let mut new_decl = self.clone();
         new_decl.copy_types(type_mapping);

@@ -61,13 +61,14 @@ impl TypedStructDeclaration {
     ) -> CompileResult<Self> {
         let mut warnings = vec![];
         let mut errors = vec![];
-        let type_mapping = insert_type_parameters(&self.type_parameters);
+        let type_mapping = dbg!(insert_type_parameters(&self.type_parameters));
         let mut new_decl = Self::monomorphize_inner(self, namespace, &type_mapping);
         let type_arguments_span = type_arguments
             .iter()
             .map(|x| x.span.clone())
             .reduce(Span::join)
             .unwrap_or_else(|| self.span.clone());
+        dbg!(&type_arguments);
         if !type_arguments.is_empty() {
             if type_mapping.len() != type_arguments.len() {
                 errors.push(CompileError::IncorrectNumberOfTypeArguments {
@@ -130,8 +131,8 @@ impl TypedStructDeclaration {
         let mut new_decl = self.clone();
         new_decl.copy_types(type_mapping);
         namespace.copy_methods_to_type(
-            look_up_type_id(old_type_id),
-            look_up_type_id(new_decl.create_type_id()),
+            dbg!(look_up_type_id(old_type_id)),
+            dbg!(look_up_type_id(new_decl.create_type_id())),
             type_mapping,
         );
         new_decl

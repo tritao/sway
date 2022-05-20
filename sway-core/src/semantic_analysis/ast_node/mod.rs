@@ -492,12 +492,38 @@ impl TypedAstNode {
                             type_parameters,
                             ..
                         }) => {
+                            // Make sure each type parameter is able to call any methods from its
+                            // corresponding trait constraints
                             for type_parameter in type_parameters.iter() {
-                                if !type_parameter.trait_constraints.is_empty() {
-                                    errors.push(CompileError::WhereClauseNotYetSupported {
-                                        span: type_parameter.name_ident.span().clone(),
-                                    });
-                                    break;
+                                for trait_constraint in type_parameter.trait_constraints.iter() {
+                                    match namespace
+                                        .resolve_call_path(&trait_constraint.call_path)
+                                        .ok(&mut warnings, &mut errors)
+                                        .cloned()
+                                    {
+                                        Some(TypedDeclaration::TraitDeclaration(
+                                            TypedTraitDeclaration {
+                                                ref interface_surface,
+                                                //ref methods,
+                                                ..
+                                            },
+                                        )) => {
+                                            let r#type = insert_type(TypeInfo::UnknownGeneric {
+                                                name: type_parameter.name_ident.clone(),
+                                            });
+                                            namespace.insert_trait_implementation(
+                                                trait_constraint.call_path.clone(),
+                                                look_up_type_id(r#type),
+                                                interface_surface
+                                                    .iter()
+                                                    .map(|x| x.to_dummy_func(Mode::NonAbi))
+                                                    .collect(),
+                                            );
+                                        }
+                                        _ => errors.push(CompileError::TraitNotFound {
+                                            name: trait_constraint.call_path.clone(),
+                                        }),
+                                    }
                                 }
                             }
 

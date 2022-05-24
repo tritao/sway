@@ -414,6 +414,8 @@ fn connect_declaration(
             Ok(leaves.to_vec())
         }
         ErrorRecovery | GenericTypeForFunctionScope { .. } => Ok(leaves.to_vec()),
+        Unknown => todo!(),
+        FunctionRef(_) => todo!(),
     }
 }
 

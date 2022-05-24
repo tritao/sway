@@ -248,6 +248,8 @@ impl UnresolvedTypeCheck for TypedDeclaration {
             | ImplTrait { .. }
             | AbiDeclaration(_)
             | GenericTypeForFunctionScope { .. } => vec![],
+            Unknown => todo!(),
+            FunctionRef(_) => todo!(),
         }
     }
 }

@@ -1,4 +1,5 @@
 use crate::type_engine::TypeId;
+use crate::function_engine::FunctionId;
 use std::sync::RwLock;
 
 #[derive(Debug, Default)]
@@ -23,6 +24,38 @@ where
     }
 
     pub fn replace(&self, index: TypeId, prev_value: &T, new_value: T) -> Option<T> {
+        let mut inner = self.inner.write().unwrap();
+        let actual_prev_value = &inner[*index];
+        if actual_prev_value != prev_value {
+            return Some(actual_prev_value.clone());
+        }
+        inner[*index] = new_value;
+        None
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ConcurrentSlabFunction<T> {
+    inner: RwLock<Vec<T>>,
+}
+
+impl<T> ConcurrentSlabFunction<T>
+where
+    T: Clone + PartialEq,
+{
+    pub fn insert(&self, value: T) -> FunctionId {
+        let mut inner = self.inner.write().unwrap();
+        let ret = inner.len();
+        inner.push(value);
+        ret.into()
+    }
+
+    pub fn get(&self, index: FunctionId) -> T {
+        let inner = self.inner.read().unwrap();
+        inner[*index].clone()
+    }
+
+    pub fn replace(&self, index: FunctionId, prev_value: &T, new_value: T) -> Option<T> {
         let mut inner = self.inner.write().unwrap();
         let actual_prev_value = &inner[*index];
         if actual_prev_value != prev_value {

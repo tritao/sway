@@ -17,7 +17,7 @@ use super::{
     copy_types::TypeMapping, impl_trait::Mode, CopyTypes, TypedCodeBlock, TypedExpression,
 };
 use crate::{
-    error::*, parse_tree::*, semantic_analysis::TypeCheckedStorageReassignment, type_engine::*,
+    error::*, parse_tree::*, semantic_analysis::TypeCheckedStorageReassignment, type_engine::*, function_engine::*,
     Ident,
 };
 use derivative::Derivative;
@@ -28,6 +28,7 @@ pub enum TypedDeclaration {
     VariableDeclaration(TypedVariableDeclaration),
     ConstantDeclaration(TypedConstantDeclaration),
     FunctionDeclaration(TypedFunctionDeclaration),
+    FunctionRef(FunctionId),
     TraitDeclaration(TypedTraitDeclaration),
     StructDeclaration(TypedStructDeclaration),
     EnumDeclaration(TypedEnumDeclaration),
@@ -47,6 +48,7 @@ pub enum TypedDeclaration {
     ErrorRecovery,
     StorageDeclaration(TypedStorageDeclaration),
     StorageReassignment(TypeCheckedStorageReassignment),
+    Unknown,
 }
 
 impl CopyTypes for TypedDeclaration {
@@ -72,6 +74,8 @@ impl CopyTypes for TypedDeclaration {
             StorageDeclaration(..) => (),
             StorageReassignment(..) => (),
             GenericTypeForFunctionScope { .. } | ErrorRecovery => (),
+            Unknown => todo!(), 
+            FunctionRef(_) => todo!(), 
         }
     }
 }
@@ -238,6 +242,9 @@ impl TypedDeclaration {
             ErrorRecovery => "error",
             StorageDeclaration(_) => "contract storage declaration",
             StorageReassignment(_) => "contract storage reassignment",
+            Unknown => todo!(), 
+            FunctionRef(_) => todo!(), 
+
         }
     }
 
@@ -296,6 +303,8 @@ impl TypedDeclaration {
             ErrorRecovery | GenericTypeForFunctionScope { .. } => {
                 unreachable!("No span exists for these ast node types")
             }
+            Unknown => todo!(), 
+            FunctionRef(_) => todo!(), 
         }
     }
 
@@ -365,7 +374,15 @@ impl TypedDeclaration {
             | FunctionDeclaration(TypedFunctionDeclaration { visibility, .. })
             | TraitDeclaration(TypedTraitDeclaration { visibility, .. })
             | StructDeclaration(TypedStructDeclaration { visibility, .. }) => *visibility,
+            Unknown => todo!(), 
+            FunctionRef(_) => todo!(), 
         }
+    }
+}
+
+impl Default for TypedDeclaration {
+    fn default() -> Self {
+        TypedDeclaration::Unknown
     }
 }
 

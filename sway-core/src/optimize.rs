@@ -199,6 +199,8 @@ fn compile_declarations(
             | TypedDeclaration::GenericTypeForFunctionScope { .. }
             | TypedDeclaration::StorageDeclaration(_)
             | TypedDeclaration::ErrorRecovery => (),
+            TypedDeclaration::Unknown => todo!(),
+            TypedDeclaration::FunctionRef(_) => todo!(),
         }
     }
     Ok(())
@@ -561,6 +563,9 @@ impl FnCompiler {
                                 span: ast_node.span,
                             })
                         }
+                        TypedDeclaration::Unknown => todo!(),
+                        TypedDeclaration::FunctionRef(_) => todo!(),
+
                     },
                     TypedAstNodeContent::Expression(te) => {
                         // An expression with an ignored return value... I assume.

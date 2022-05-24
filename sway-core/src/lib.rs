@@ -14,6 +14,7 @@ pub mod semantic_analysis;
 pub mod source_map;
 mod style;
 pub mod type_engine;
+pub mod function_engine;
 
 use crate::{
     asm_generation::{checks, compile_ast_to_asm},

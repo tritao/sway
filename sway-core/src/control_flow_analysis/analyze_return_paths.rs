@@ -226,6 +226,8 @@ fn connect_declaration(
             leaves.to_vec()
         }
         ErrorRecovery => leaves.to_vec(),
+        Unknown => todo!(),
+        FunctionRef(_) => todo!(),
     }
 }
 

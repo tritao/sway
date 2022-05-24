@@ -17,7 +17,7 @@ pub(crate) struct ContractCallMetadata {
 pub(crate) enum TypedExpressionVariant {
     Literal(Literal),
     FunctionApplication {
-        name: CallPath,
+        call_path: CallPath,
         #[derivative(Eq(bound = ""))]
         contract_call_params: HashMap<String, TypedExpression>,
         arguments: Vec<(Ident, TypedExpression)>,
@@ -126,13 +126,13 @@ impl PartialEq for TypedExpressionVariant {
             (Self::Literal(l0), Self::Literal(r0)) => l0 == r0,
             (
                 Self::FunctionApplication {
-                    name: l_name,
+                    call_path: l_name,
                     arguments: l_arguments,
                     function_body: l_function_body,
                     ..
                 },
                 Self::FunctionApplication {
-                    name: r_name,
+                    call_path: r_name,
                     arguments: r_arguments,
                     function_body: r_function_body,
                     ..
@@ -411,9 +411,13 @@ impl CopyTypes for TypedExpressionVariant {
                 *resolved_type_of_parent = if let Some(matching_id) =
                     look_up_type_id(*resolved_type_of_parent).matches_type_parameter(type_mapping)
                 {
-                    insert_type(TypeInfo::Ref(matching_id))
+                    insert_type(TypeInfo::Ref(matching_id, field_to_access.span.clone()))
                 } else {
-                    insert_type(look_up_type_id_raw(*resolved_type_of_parent))
+                    let ty = TypeInfo::Ref(
+                        insert_type(look_up_type_id_raw(*resolved_type_of_parent)),
+                        field_to_access.span.clone(),
+                    );
+                    insert_type(ty)
                 };
 
                 field_to_access.copy_types(type_mapping);
@@ -427,9 +431,13 @@ impl CopyTypes for TypedExpressionVariant {
                 *resolved_type_of_parent = if let Some(matching_id) =
                     look_up_type_id(*resolved_type_of_parent).matches_type_parameter(type_mapping)
                 {
-                    insert_type(TypeInfo::Ref(matching_id))
+                    insert_type(TypeInfo::Ref(matching_id, prefix.span.clone()))
                 } else {
-                    insert_type(look_up_type_id_raw(*resolved_type_of_parent))
+                    let ty = TypeInfo::Ref(
+                        insert_type(look_up_type_id_raw(*resolved_type_of_parent)),
+                        prefix.span.clone(),
+                    );
+                    insert_type(ty)
                 };
 
                 prefix.copy_types(type_mapping);
@@ -447,13 +455,15 @@ impl CopyTypes for TypedExpressionVariant {
             AbiCast { address, .. } => address.copy_types(type_mapping),
             // storage is never generic and cannot be monomorphized
             StorageAccess { .. } => (),
-            TypeProperty { type_id, .. } => {
+            TypeProperty { type_id, span, .. } => {
                 *type_id = if let Some(matching_id) =
                     look_up_type_id(*type_id).matches_type_parameter(type_mapping)
                 {
-                    insert_type(TypeInfo::Ref(matching_id))
+                    insert_type(TypeInfo::Ref(matching_id, span.clone()))
                 } else {
-                    insert_type(look_up_type_id_raw(*type_id))
+                    let ty =
+                        TypeInfo::Ref(insert_type(look_up_type_id_raw(*type_id)), span.clone());
+                    insert_type(ty)
                 };
             }
             SizeOfValue { expr } => expr.copy_types(type_mapping),
@@ -465,9 +475,13 @@ impl CopyTypes for TypedExpressionVariant {
                 *enum_type = if let Some(matching_id) =
                     look_up_type_id(*enum_type).matches_type_parameter(type_mapping)
                 {
-                    insert_type(TypeInfo::Ref(matching_id))
+                    insert_type(TypeInfo::Ref(matching_id, variant.span.clone()))
                 } else {
-                    insert_type(look_up_type_id_raw(*enum_type))
+                    let ty = TypeInfo::Ref(
+                        insert_type(look_up_type_id_raw(*enum_type)),
+                        variant.span.clone(),
+                    );
+                    insert_type(ty)
                 };
                 variant.copy_types(type_mapping);
             }
@@ -553,7 +567,9 @@ impl TypedExpressionVariant {
                         .join(", "),
                 }
             ),
-            TypedExpressionVariant::FunctionApplication { name, .. } => {
+            TypedExpressionVariant::FunctionApplication {
+                call_path: name, ..
+            } => {
                 format!("\"{}\" fn entry", name.suffix.as_str())
             }
             TypedExpressionVariant::LazyOperator { op, .. } => match op {

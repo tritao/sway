@@ -1,11 +1,13 @@
 mod create_type_id;
 mod r#enum;
 mod function;
+mod monomorphize;
 mod storage;
 mod r#struct;
 mod variable;
 pub(crate) use create_type_id::*;
 pub use function::*;
+pub(crate) use monomorphize::*;
 pub use r#enum::*;
 pub use r#struct::*;
 pub use storage::*;
@@ -449,9 +451,13 @@ impl CopyTypes for TypedTraitFn {
         self.return_type = if let Some(matching_id) =
             look_up_type_id(self.return_type).matches_type_parameter(type_mapping)
         {
-            insert_type(TypeInfo::Ref(matching_id))
+            insert_type(TypeInfo::Ref(matching_id, self.return_type_span.clone()))
         } else {
-            insert_type(look_up_type_id_raw(self.return_type))
+            let ty = TypeInfo::Ref(
+                insert_type(look_up_type_id_raw(self.return_type)),
+                self.return_type_span.clone(),
+            );
+            insert_type(ty)
         };
     }
 }
@@ -514,16 +520,24 @@ pub struct TypedReassignment {
 impl CopyTypes for TypedReassignment {
     fn copy_types(&mut self, type_mapping: &TypeMapping) {
         self.rhs.copy_types(type_mapping);
-        self.lhs
-            .iter_mut()
-            .for_each(|ReassignmentLhs { ref mut r#type, .. }| {
+        self.lhs.iter_mut().for_each(
+            |ReassignmentLhs {
+                 ref mut r#type,
+                 name,
+                 ..
+             }| {
                 *r#type = if let Some(matching_id) =
                     look_up_type_id(*r#type).matches_type_parameter(type_mapping)
                 {
-                    insert_type(TypeInfo::Ref(matching_id))
+                    insert_type(TypeInfo::Ref(matching_id, name.span().clone()))
                 } else {
-                    insert_type(look_up_type_id_raw(*r#type))
+                    let ty = TypeInfo::Ref(
+                        insert_type(look_up_type_id_raw(*r#type)),
+                        name.span().clone(),
+                    );
+                    insert_type(ty)
                 };
-            });
+            },
+        );
     }
 }

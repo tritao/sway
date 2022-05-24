@@ -501,6 +501,10 @@ impl Dependencies {
                 self.deps.insert(DependentSymbol::Symbol(name.to_string()));
                 self.gather_from_type_arguments(type_arguments)
             }
+            TypeInfo::Tuple(elems) => self.gather_from_iter(elems.iter(), |deps, elem| {
+                deps.gather_from_typeinfo(&look_up_type_id(elem.type_id))
+            }),
+            TypeInfo::Array(type_id, _) => self.gather_from_typeinfo(&look_up_type_id(*type_id)),
             _ => self,
         }
     }
@@ -641,7 +645,7 @@ fn type_info_name(type_info: &TypeInfo) -> String {
         TypeInfo::Numeric => "numeric",
         TypeInfo::Contract => "contract",
         TypeInfo::ErrorRecovery => "err_recov",
-        TypeInfo::Ref(x) => return format!("T{}", x),
+        TypeInfo::Ref(x, _sp) => return format!("T{}", x),
         TypeInfo::Unknown => "unknown",
         TypeInfo::UnknownGeneric { name } => return format!("generic {}", name),
         TypeInfo::ContractCaller { abi_name, .. } => {

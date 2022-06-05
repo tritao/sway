@@ -12,6 +12,9 @@ pub async fn start(config: DebugFlags) {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| Backend::new(client, config));
+    let (service, socket) = LspService::build(|client| Backend::new(client, config))
+        .custom_method("textDocument/inlayHint", Backend::inlay_hints)
+        .finish();
+    
     Server::new(stdin, stdout, socket).serve(service).await;
 }

@@ -70,6 +70,7 @@ fn capabilities() -> ServerCapabilities {
             commands: vec![],
             ..Default::default()
         }),
+        inlay_hint_provider: Some(OneOf::Left(true)),
         document_highlight_provider: Some(OneOf::Left(true)),
         document_formatting_provider: Some(OneOf::Left(true)),
         ..ServerCapabilities::default()
@@ -77,6 +78,48 @@ fn capabilities() -> ServerCapabilities {
 }
 
 impl Backend {
+    pub async fn inlay_hints(&self, params: InlayHintParams) -> jsonrpc::Result<Option<Vec<InlayHint>>> {
+        eprintln!("INLAY HINTS");
+        use crate::capabilities::inlay_hints;
+        let config = inlay_hints::InlayHintsConfig::default();
+        if let Some(document) = self.session.documents.get(params.text_document.uri.path()) {
+            let v = document.get_token_map()
+                .iter()
+                .map(|((ident, span), token)| {
+                    let range = crate::utils::common::get_range_from_span(span);
+                    let kind = inlay_hints::InlayKind::TypeHint;
+                    //let label = "$$$$".to_string();
+                    
+                    let label = match crate::core::traverse_typed_tree::get_type_id(token) {
+                        Some(type_id) => {
+                            tracing::info!("type_id = {:#?}", type_id);
+    
+                            // Use the TypeId to look up the actual type (I think there is a method in the type_engine for this)
+                            let type_info = sway_core::type_engine::look_up_type_id(type_id);
+                            tracing::info!("type_info = {:#?}", type_info);
+                            type_info.friendly_type_str()
+                        }
+                        None => "".to_string()
+                    };
+                    let inlay_hint = inlay_hints::InlayHint {
+                        range,
+                        kind,
+                        label,
+                    };
+                    inlay_hints::inlay_hint(config.render_colons, inlay_hint)
+            }).collect();
+
+            return Ok(Some(v));
+        }
+        
+        // iter over all tokens in out token_map.
+        // filter_map? all tokens that are outside of the params.range 
+        // map the remaining tokens into an LSP InlayHint
+        // collect all these into a vector 
+        // return
+        Ok(None)
+    }
+
     async fn publish_diagnostics(&self, uri: Url, diagnostics: Vec<Diagnostic>) {
         // If parsed_tokens_as_warnings is true, take over the normal error and warning display behavior
         // and instead show the parsed tokens as warnings.
@@ -116,6 +159,7 @@ impl LanguageServer for Backend {
         Ok(InitializeResult {
             server_info: None,
             capabilities: capabilities(),
+            ..InitializeResult::default()
         })
     }
 
@@ -351,6 +395,31 @@ fn main() {
         assert_eq!(response, Ok(None));
     }
 
+    async fn inlay_hints_request(service: &mut LspService<Backend>, uri: &Url) -> Request {
+        let inlay_hint = Request::build("textDocument/inlayHint")
+            .params(json!({
+                "textDocument": {
+                    "uri": uri,
+                },
+                "range": {
+                    "start": {
+                        "line": 0,
+                        "character": 0
+                    },
+                    "end": {
+                        "line": 30,
+                        "character": 1
+                    }
+                } 
+            }))
+            .id(1)
+            .finish();
+        let response = service.ready().await.unwrap().call(inlay_hint.clone()).await;
+        let ok = Response::from_ok(1.into(), json!([]));
+        assert_eq!(response, Ok(Some(ok)));
+        inlay_hint
+    }
+
     fn config() -> DebugFlags {
         Default::default()
     }
@@ -539,6 +608,40 @@ fn main() {
             .finish();
         let response = service.ready().await.unwrap().call(did_change).await;
         assert_eq!(response, Ok(None));
+
+        // send "shutdown" request
+        let _ = shutdown_request(&mut service).await;
+
+        // send "exit" request
+        exit_notification(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn inlay_hints() {
+        let (mut service, mut messages) = LspService::build(|client| Backend::new(client, config()))
+            .custom_method("textDocument/inlayHint", Backend::inlay_hints)
+            .finish();
+
+        // send "initialize" request
+        let _ = initialize_request(&mut service).await;
+
+        // send "initialized" notification
+        initialized_notification(&mut service).await;
+
+        // ignore the "window/logMessage" notification: "Initializing the Sway Language Server"
+        messages.next().await.unwrap();
+
+        let uri = load_test_sway_file(SWAY_PROGRAM);
+
+        // send "textDocument/didOpen" notification for `uri`
+        did_open_notification(&mut service, &uri, SWAY_PROGRAM).await;
+
+        // ignore the "textDocument/publishDiagnostics" notification
+        messages.next().await.unwrap();
+
+        // send "textDocument/inlayHint request"
+        let req = inlay_hints_request(&mut service, &uri).await;
+        eprintln!("req = {:#?}", req);
 
         // send "shutdown" request
         let _ = shutdown_request(&mut service).await;

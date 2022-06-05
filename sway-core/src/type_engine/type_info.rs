@@ -280,7 +280,7 @@ impl Default for TypeInfo {
 }
 
 impl TypeInfo {
-    pub(crate) fn friendly_type_str(&self) -> String {
+    pub fn friendly_type_str(&self) -> String {
         use TypeInfo::*;
         match self {
             Unknown => "unknown".into(),

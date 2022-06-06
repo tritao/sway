@@ -24,5 +24,6 @@ dep reentrancy;
 dep vm/mod;
 dep flags;
 dep u128;
+dep load_code;
 
 use core::*;

@@ -1,0 +1,7 @@
+[project]
+name = "proxy_implementation_abi"
+authors = ["Nicholas Furfaro"]
+entry = "lib.sw"
+license = "Apache-2.0"
+
+[dependencies]

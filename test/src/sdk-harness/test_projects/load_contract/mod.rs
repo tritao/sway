@@ -2,13 +2,11 @@ use fuels::{prelude::*, tx::ContractId, };
 use fuels_abigen_macro::abigen;
 use fuels::signers::wallet::Wallet;
 
-// Load abi from json
 abigen!(Proxy, "./test_projects/load_contract/out/debug/load_contract-abi.json");
 
 abigen!(ProxyImplementation, "./test_artifacts/proxy_implementation_contract/out/debug/proxy_implementation_contract-abi.json");
 
 async fn get_contract_instance() -> (Proxy, ContractId, ContractId, Wallet) {
-    // Launch a local network and deploy the contract
     let wallet = launch_provider_and_get_single_wallet().await;
 
     let proxy_id = Contract::deploy("test_projects/load_contract/out/debug/load_contract.bin", &wallet, TxParameters::default())
@@ -35,7 +33,7 @@ async fn can_call_implementation_via_proxy() {
         .await
         .unwrap();
 
-    // now we need to connect to the existing Proxy contract, but using the abi for the Implementation contract
+    // now we connect to the existing Proxy contract, but using the Implementation contract's abi!
     let implementation_aware_proxy_instance = ProxyImplementation::new(proxy_id.to_string(), wallet);
 
     // we should now be able to access functions on the implementation contract

@@ -1,158 +1,167 @@
-use super::{declaration::TypedTraitFn, ERROR_RECOVERY_DECLARATION};
+use sway_types::{Ident, Span, Spanned};
 
-use crate::{error::*, parse_tree::*, semantic_analysis::*, type_engine::*, CallPath, Ident};
+use crate::{
+    error::{err, ok},
+    semantic_analysis::{Mode, TCOpts, TypeCheckArguments},
+    type_engine::{
+        insert_type, look_up_type_id, resolve_type, unify_with_self, CopyTypes, TypeId, TypeMapping,
+    },
+    CallPath, CompileError, CompileResult, FunctionDeclaration, ImplTrait, Namespace, Purity,
+    TypeInfo, TypedDeclaration, TypedFunctionDeclaration,
+};
 
-use sway_types::{span::Span, Spanned};
+use super::TypedTraitFn;
 
-pub(crate) fn implementation_of_trait(
-    impl_trait: ImplTrait,
-    namespace: &mut Namespace,
-    opts: TCOpts,
-) -> CompileResult<TypedDeclaration> {
-    let mut errors = vec![];
-    let mut warnings = vec![];
-    let ImplTrait {
-        trait_name,
-        type_arguments,
-        functions,
-        type_implementing_for,
-        type_implementing_for_span,
-        block_span,
-        ..
-    } = impl_trait;
-    let type_implementing_for = check!(
-        namespace.resolve_type_without_self(type_implementing_for),
-        return err(warnings, errors),
-        warnings,
-        errors
-    );
-    let type_implementing_for = look_up_type_id(type_implementing_for);
-    let type_implementing_for_id = insert_type(type_implementing_for.clone());
-    for type_argument in type_arguments.iter() {
-        if !type_argument.trait_constraints.is_empty() {
-            errors.push(CompileError::WhereClauseNotYetSupported {
-                span: type_argument.name_ident.span(),
-            });
-            break;
-        }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TypedImplTrait {
+    pub(crate) trait_name: CallPath,
+    pub(crate) span: Span,
+    pub(crate) methods: Vec<TypedFunctionDeclaration>,
+    pub(crate) type_implementing_for: TypeInfo,
+}
+
+impl CopyTypes for TypedImplTrait {
+    fn copy_types(&mut self, type_mapping: &TypeMapping) {
+        self.methods
+            .iter_mut()
+            .for_each(|x| x.copy_types(type_mapping));
     }
-    match namespace
-        .resolve_call_path(&trait_name)
-        .ok(&mut warnings, &mut errors)
-        .cloned()
-    {
-        Some(TypedDeclaration::TraitDeclaration(tr)) => {
-            let functions_buf = check!(
-                type_check_trait_implementation(
-                    &tr.interface_surface,
-                    &functions,
-                    &tr.methods,
-                    &trait_name,
-                    namespace,
-                    type_implementing_for_id,
-                    &block_span,
-                    type_implementing_for_id,
-                    &type_implementing_for_span,
-                    Mode::NonAbi,
-                    opts,
-                ),
-                return err(warnings, errors),
-                warnings,
-                errors
-            );
-            // type check all components of the impl trait functions
-            // add the methods to the namespace
+}
 
-            namespace.insert_trait_implementation(
-                trait_name.clone(),
-                match resolve_type(type_implementing_for_id, &type_implementing_for_span) {
-                    Ok(o) => o,
-                    Err(e) => {
-                        errors.push(e.into());
-                        return err(warnings, errors);
-                    }
-                },
-                functions_buf.clone(),
-            );
-            ok(
-                TypedDeclaration::ImplTrait {
-                    trait_name,
-                    span: block_span,
-                    methods: functions_buf,
-                    type_implementing_for,
-                },
-                warnings,
-                errors,
-            )
-        }
-        Some(TypedDeclaration::AbiDeclaration(abi)) => {
-            // if you are comparing this with the `impl_trait` branch above, note that
-            // there are no type arguments here because we don't support generic types
-            // in contract ABIs yet (or ever?) due to the complexity of communicating
-            // the ABI layout in the descriptor file.
-            if type_implementing_for != TypeInfo::Contract {
-                errors.push(CompileError::ImplAbiForNonContract {
-                    span: type_implementing_for_span.clone(),
-                    ty: type_implementing_for.to_string(),
+impl TypedImplTrait {
+    pub(crate) fn type_check(
+        impl_trait: ImplTrait,
+        namespace: &mut Namespace,
+        opts: TCOpts,
+    ) -> CompileResult<TypedImplTrait> {
+        let mut errors = vec![];
+        let mut warnings = vec![];
+        let ImplTrait {
+            trait_name,
+            type_arguments,
+            functions,
+            type_implementing_for,
+            type_implementing_for_span,
+            block_span,
+            ..
+        } = impl_trait;
+
+        let type_implementing_for = check!(
+            namespace.resolve_type_without_self(type_implementing_for),
+            return err(warnings, errors),
+            warnings,
+            errors
+        );
+        let type_implementing_for = look_up_type_id(type_implementing_for);
+        let type_implementing_for_id = insert_type(type_implementing_for.clone());
+        for type_argument in type_arguments.iter() {
+            if !type_argument.trait_constraints.is_empty() {
+                errors.push(CompileError::WhereClauseNotYetSupported {
+                    span: type_argument.name_ident.span(),
                 });
+                break;
             }
+        }
+        let impl_trait = match namespace
+            .resolve_call_path(&trait_name)
+            .ok(&mut warnings, &mut errors)
+            .cloned()
+        {
+            Some(TypedDeclaration::TraitDeclaration(tr)) => {
+                let functions_buf = check!(
+                    type_check_trait_implementation(
+                        &tr.interface_surface,
+                        &functions,
+                        &tr.methods,
+                        &trait_name,
+                        namespace,
+                        type_implementing_for_id,
+                        &block_span,
+                        type_implementing_for_id,
+                        &type_implementing_for_span,
+                        Mode::NonAbi,
+                        opts,
+                    ),
+                    return err(warnings, errors),
+                    warnings,
+                    errors
+                );
+                // type check all components of the impl trait functions
+                // add the methods to the namespace
 
-            let functions_buf = check!(
-                type_check_trait_implementation(
-                    &abi.interface_surface,
-                    &functions,
-                    &abi.methods,
-                    &trait_name,
-                    namespace,
-                    type_implementing_for_id,
-                    &block_span,
-                    type_implementing_for_id,
-                    &type_implementing_for_span,
-                    Mode::ImplAbiFn,
-                    opts,
-                ),
-                return err(warnings, errors),
-                warnings,
-                errors
-            );
-            // type check all components of the impl trait functions
-            // add the methods to the namespace
-
-            namespace.insert_trait_implementation(
-                trait_name.clone(),
-                look_up_type_id(type_implementing_for_id),
-                functions_buf.clone(),
-            );
-            ok(
-                TypedDeclaration::ImplTrait {
+                namespace.insert_trait_implementation(
+                    trait_name.clone(),
+                    match resolve_type(type_implementing_for_id, &type_implementing_for_span) {
+                        Ok(o) => o,
+                        Err(e) => {
+                            errors.push(e.into());
+                            return err(warnings, errors);
+                        }
+                    },
+                    functions_buf.clone(),
+                );
+                TypedImplTrait {
                     trait_name,
                     span: block_span,
                     methods: functions_buf,
                     type_implementing_for,
-                },
-                warnings,
-                errors,
-            )
-        }
-        Some(_) | None => {
-            errors.push(CompileError::UnknownTrait {
-                name: trait_name.suffix.clone(),
-                span: trait_name.span(),
-            });
-            ok(ERROR_RECOVERY_DECLARATION.clone(), warnings, errors)
-        }
-    }
-}
+                }
+            }
+            Some(TypedDeclaration::AbiDeclaration(abi)) => {
+                // if you are comparing this with the `impl_trait` branch above, note that
+                // there are no type arguments here because we don't support generic types
+                // in contract ABIs yet (or ever?) due to the complexity of communicating
+                // the ABI layout in the descriptor file.
+                if type_implementing_for != TypeInfo::Contract {
+                    errors.push(CompileError::ImplAbiForNonContract {
+                        span: type_implementing_for_span.clone(),
+                        ty: type_implementing_for.to_string(),
+                    });
+                }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Mode {
-    ImplAbiFn,
-    NonAbi,
-}
+                let functions_buf = check!(
+                    type_check_trait_implementation(
+                        &abi.interface_surface,
+                        &functions,
+                        &abi.methods,
+                        &trait_name,
+                        namespace,
+                        type_implementing_for_id,
+                        &block_span,
+                        type_implementing_for_id,
+                        &type_implementing_for_span,
+                        Mode::ImplAbiFn,
+                        opts,
+                    ),
+                    return err(warnings, errors),
+                    warnings,
+                    errors
+                );
+                // type check all components of the impl trait functions
+                // add the methods to the namespace
 
-impl Default for Mode {
-    fn default() -> Self {
-        Mode::NonAbi
+                namespace.insert_trait_implementation(
+                    trait_name.clone(),
+                    look_up_type_id(type_implementing_for_id),
+                    functions_buf.clone(),
+                );
+                TypedImplTrait {
+                    trait_name,
+                    span: block_span,
+                    methods: functions_buf,
+                    type_implementing_for,
+                }
+            }
+            Some(_) | None => {
+                errors.push(CompileError::UnknownTrait {
+                    name: trait_name.suffix.clone(),
+                    span: trait_name.span(),
+                });
+                //ERROR_RECOVERY_DECLARATION.clone()
+                return err(warnings, errors);
+            }
+        };
+        ok(impl_trait, warnings, errors)
     }
 }
 

@@ -52,18 +52,6 @@ impl UnresolvedTypeCheck for TypeId {
     }
 }
 
-impl TypeId {
-    pub(crate) fn update_type(&mut self, type_mapping: &TypeMapping, span: &Span) {
-        *self = match look_up_type_id(*self).matches_type_parameter(type_mapping) {
-            Some(matching_id) => insert_type(TypeInfo::Ref(matching_id, span.clone())),
-            None => {
-                let ty = TypeInfo::Ref(insert_type(look_up_type_id_raw(*self)), span.clone());
-                insert_type(ty)
-            }
-        };
-    }
-}
-
 impl JsonAbiString for TypeId {
     fn json_abi_str(&self) -> String {
         look_up_type_id(*self).json_abi_str()
@@ -92,5 +80,21 @@ impl ToJsonAbi for TypeId {
             TypeInfo::Tuple(fields) => Some(fields.iter().map(|x| x.generate_json_abi()).collect()),
             _ => None,
         }
+    }
+}
+
+impl TypeId {
+    pub(crate) fn update_type(&mut self, type_mapping: &TypeMapping, span: &Span) {
+        *self = match self.matches_type_parameter(type_mapping) {
+            Some(matching_id) => insert_type(TypeInfo::Ref(matching_id, span.clone())),
+            None => {
+                let ty = TypeInfo::Ref(insert_type(look_up_type_id_raw(*self)), span.clone());
+                insert_type(ty)
+            }
+        };
+    }
+
+    pub(crate) fn matches_type_parameter(&self, type_mapping: &TypeMapping) -> Option<TypeId> {
+        look_up_type_id(*self).matches_type_parameter(type_mapping)
     }
 }

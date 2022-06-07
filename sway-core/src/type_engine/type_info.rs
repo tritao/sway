@@ -577,18 +577,14 @@ impl TypeInfo {
             } => {
                 let mut new_fields = fields.clone();
                 for new_field in new_fields.iter_mut() {
-                    if let Some(matching_id) =
-                        look_up_type_id(new_field.r#type).matches_type_parameter(mapping)
-                    {
+                    if let Some(matching_id) = new_field.r#type.matches_type_parameter(mapping) {
                         new_field.r#type =
                             insert_type(TypeInfo::Ref(matching_id, new_field.span.clone()));
                     }
                 }
                 let mut new_type_parameters = type_parameters.clone();
                 for new_param in new_type_parameters.iter_mut() {
-                    if let Some(matching_id) =
-                        look_up_type_id(new_param.type_id).matches_type_parameter(mapping)
-                    {
+                    if let Some(matching_id) = new_param.type_id.matches_type_parameter(mapping) {
                         new_param.type_id =
                             insert_type(TypeInfo::Ref(matching_id, new_param.span().clone()));
                     }
@@ -606,18 +602,14 @@ impl TypeInfo {
             } => {
                 let mut new_variants = variant_types.clone();
                 for new_variant in new_variants.iter_mut() {
-                    if let Some(matching_id) =
-                        look_up_type_id(new_variant.r#type).matches_type_parameter(mapping)
-                    {
+                    if let Some(matching_id) = new_variant.r#type.matches_type_parameter(mapping) {
                         new_variant.r#type =
                             insert_type(TypeInfo::Ref(matching_id, new_variant.span.clone()));
                     }
                 }
                 let mut new_type_parameters = type_parameters.clone();
                 for new_param in new_type_parameters.iter_mut() {
-                    if let Some(matching_id) =
-                        look_up_type_id(new_param.type_id).matches_type_parameter(mapping)
-                    {
+                    if let Some(matching_id) = new_param.type_id.matches_type_parameter(mapping) {
                         new_param.type_id =
                             insert_type(TypeInfo::Ref(matching_id, new_param.span().clone()));
                     }
@@ -628,15 +620,14 @@ impl TypeInfo {
                     name: name.clone(),
                 }))
             }
-            TypeInfo::Array(ary_ty_id, count) => look_up_type_id(*ary_ty_id)
+            TypeInfo::Array(ary_ty_id, count) => ary_ty_id
                 .matches_type_parameter(mapping)
                 .map(|matching_id| insert_type(TypeInfo::Array(matching_id, *count))),
             TypeInfo::Tuple(fields) => {
                 let mut new_fields = Vec::new();
                 let mut index = 0;
                 while index < fields.len() {
-                    let new_field_id_opt =
-                        look_up_type_id(fields[index].type_id).matches_type_parameter(mapping);
+                    let new_field_id_opt = fields[index].type_id.matches_type_parameter(mapping);
                     if let Some(new_field_id) = new_field_id_opt {
                         new_fields.extend(fields[..index].iter().cloned());
                         new_fields.push(TypeArgument {
@@ -652,9 +643,7 @@ impl TypeInfo {
                     index += 1;
                 }
                 while index < fields.len() {
-                    let new_field = match look_up_type_id(fields[index].type_id)
-                        .matches_type_parameter(mapping)
-                    {
+                    let new_field = match fields[index].type_id.matches_type_parameter(mapping) {
                         Some(new_field_id) => TypeArgument {
                             type_id: insert_type(TypeInfo::Ref(
                                 new_field_id,

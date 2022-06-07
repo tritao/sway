@@ -1,15 +1,20 @@
 mod create_type_id;
 mod r#enum;
 mod function;
+mod impl_trait;
 mod monomorphize;
 mod storage;
 mod r#struct;
+mod r#trait;
 mod variable;
+
 pub(crate) use create_type_id::*;
 pub use function::*;
+pub(crate) use impl_trait::*;
 pub(crate) use monomorphize::*;
 pub use r#enum::*;
 pub use r#struct::*;
+pub(crate) use r#trait::*;
 pub use storage::*;
 pub use variable::*;
 
@@ -27,18 +32,11 @@ pub enum TypedDeclaration {
     StructDeclaration(TypedStructDeclaration),
     EnumDeclaration(TypedEnumDeclaration),
     Reassignment(TypedReassignment),
-    ImplTrait {
-        trait_name: CallPath,
-        span: Span,
-        methods: Vec<TypedFunctionDeclaration>,
-        type_implementing_for: TypeInfo,
-    },
+    ImplTrait(TypedImplTrait),
     AbiDeclaration(TypedAbiDeclaration),
     // If type parameters are defined for a function, they are put in the namespace just for
     // the body of that function.
-    GenericTypeForFunctionScope {
-        name: Ident,
-    },
+    GenericTypeForFunctionScope { name: Ident, type_id: TypeId },
     ErrorRecovery,
     StorageDeclaration(TypedStorageDeclaration),
     StorageReassignment(TypeCheckedStorageReassignment),
@@ -57,11 +55,7 @@ impl CopyTypes for TypedDeclaration {
             StructDeclaration(ref mut struct_decl) => struct_decl.copy_types(type_mapping),
             EnumDeclaration(ref mut enum_decl) => enum_decl.copy_types(type_mapping),
             Reassignment(ref mut reassignment) => reassignment.copy_types(type_mapping),
-            ImplTrait {
-                ref mut methods, ..
-            } => {
-                methods.iter_mut().for_each(|x| x.copy_types(type_mapping));
-            }
+            ImplTrait(ref mut impl_trait) => impl_trait.copy_types(type_mapping),
             // generics in an ABI is unsupported by design
             AbiDeclaration(..) => (),
             StorageDeclaration(..) => (),
@@ -89,7 +83,7 @@ impl Spanned for TypedDeclaration {
                 Span::join(acc, this.span())
             }),
             AbiDeclaration(TypedAbiDeclaration { span, .. }) => span.clone(),
-            ImplTrait { span, .. } => span.clone(),
+            ImplTrait(TypedImplTrait { span, .. }) => span.clone(),
             StorageDeclaration(decl) => decl.span(),
             StorageReassignment(decl) => decl.span(),
             ErrorRecovery | GenericTypeForFunctionScope { .. } => {
@@ -363,7 +357,7 @@ impl TypedDeclaration {
             StructDeclaration(_) => "struct",
             EnumDeclaration(_) => "enum",
             Reassignment(_) => "reassignment",
-            ImplTrait { .. } => "impl trait",
+            ImplTrait(_) => "impl trait",
             AbiDeclaration(..) => "abi",
             GenericTypeForFunctionScope { .. } => "generic type parameter",
             ErrorRecovery => "error",
@@ -391,8 +385,8 @@ impl TypedDeclaration {
             TypedDeclaration::StorageDeclaration(decl) => insert_type(TypeInfo::Storage {
                 fields: decl.fields_as_typed_struct_fields(),
             }),
-            TypedDeclaration::GenericTypeForFunctionScope { name } => {
-                insert_type(TypeInfo::UnknownGeneric { name: name.clone() })
+            TypedDeclaration::GenericTypeForFunctionScope { name, type_id } => {
+                insert_type(TypeInfo::Ref(*type_id, name.span()))
             }
             decl => {
                 return err(
@@ -468,69 +462,6 @@ pub struct TypedConstantDeclaration {
 impl CopyTypes for TypedConstantDeclaration {
     fn copy_types(&mut self, type_mapping: &TypeMapping) {
         self.value.copy_types(type_mapping);
-    }
-}
-
-#[derive(Clone, Debug, Derivative)]
-#[derivative(PartialEq, Eq)]
-pub struct TypedTraitDeclaration {
-    pub name: Ident,
-    pub interface_surface: Vec<TypedTraitFn>,
-    // NOTE: deriving partialeq and hash on this element may be important in the
-    // future, but I am not sure. For now, adding this would 2x the amount of
-    // work, so I am just going to exclude it
-    #[derivative(PartialEq = "ignore")]
-    #[derivative(Eq(bound = ""))]
-    pub(crate) methods: Vec<FunctionDeclaration>,
-    pub(crate) supertraits: Vec<Supertrait>,
-    pub(crate) visibility: Visibility,
-}
-
-impl CopyTypes for TypedTraitDeclaration {
-    fn copy_types(&mut self, type_mapping: &TypeMapping) {
-        self.interface_surface
-            .iter_mut()
-            .for_each(|x| x.copy_types(type_mapping));
-        // we don't have to type check the methods because it hasn't been type checked yet
-    }
-}
-
-#[derive(Clone, Debug, Derivative)]
-#[derivative(PartialEq, Eq)]
-pub struct TypedTraitFn {
-    pub name: Ident,
-    pub(crate) purity: Purity,
-    pub(crate) parameters: Vec<TypedFunctionParameter>,
-    pub return_type: TypeId,
-    #[derivative(PartialEq = "ignore")]
-    #[derivative(Eq(bound = ""))]
-    pub(crate) return_type_span: Span,
-}
-
-impl CopyTypes for TypedTraitFn {
-    fn copy_types(&mut self, type_mapping: &TypeMapping) {
-        self.return_type
-            .update_type(type_mapping, &self.return_type_span);
-    }
-}
-
-impl TypedTraitFn {
-    /// This function is used in trait declarations to insert "placeholder" functions
-    /// in the methods. This allows the methods to use functions declared in the
-    /// interface surface.
-    pub(crate) fn to_dummy_func(&self, mode: Mode) -> TypedFunctionDeclaration {
-        TypedFunctionDeclaration {
-            purity: self.purity,
-            name: self.name.clone(),
-            body: TypedCodeBlock { contents: vec![] },
-            parameters: self.parameters.clone(),
-            span: self.name.span(),
-            return_type: self.return_type,
-            return_type_span: self.return_type_span.clone(),
-            visibility: Visibility::Public,
-            type_parameters: vec![],
-            is_contract_call: mode == Mode::ImplAbiFn,
-        }
     }
 }
 

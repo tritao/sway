@@ -2,10 +2,7 @@ use crate::{error::*, parse_tree::*, semantic_analysis::*, type_engine::*};
 
 use sway_types::{ident::Ident, span::Span, Spanned};
 
-use std::{
-    convert::From,
-    hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Eq)]
 pub struct TypeParameter {
@@ -36,17 +33,9 @@ impl PartialEq for TypeParameter {
     }
 }
 
-impl From<&TypeParameter> for TypedDeclaration {
-    fn from(n: &TypeParameter) -> Self {
-        TypedDeclaration::GenericTypeForFunctionScope {
-            name: n.name_ident.clone(),
-        }
-    }
-}
-
 impl CopyTypes for TypeParameter {
     fn copy_types(&mut self, type_mapping: &TypeMapping) {
-        self.type_id = match look_up_type_id(self.type_id).matches_type_parameter(type_mapping) {
+        self.type_id = match self.type_id.matches_type_parameter(type_mapping) {
             Some(matching_id) => insert_type(TypeInfo::Ref(matching_id, self.name_ident.span())),
             None => {
                 let ty = TypeInfo::Ref(insert_type(look_up_type_id_raw(self.type_id)), self.span());
@@ -65,7 +54,7 @@ impl UpdateTypes for TypeParameter {
     ) -> CompileResult<()> {
         let mut warnings = vec![];
         let mut errors = vec![];
-        self.type_id = match look_up_type_id(self.type_id).matches_type_parameter(type_mapping) {
+        self.type_id = match self.type_id.matches_type_parameter(type_mapping) {
             Some(matching_id) => insert_type(TypeInfo::Ref(matching_id, self.span())),
             None => check!(
                 namespace.resolve_type_with_self(

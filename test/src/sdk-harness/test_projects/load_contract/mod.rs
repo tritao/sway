@@ -27,6 +27,7 @@ async fn can_call_implementation_via_proxy() {
     let (instance, proxy_id, implementation_id, wallet) = get_contract_instance().await;
 
     // call set_implementation to load the bytecode for the proxy implementation contract.
+
     instance.set_implementation(implementation_id)
         .set_contracts(&[implementation_id])
         .call()

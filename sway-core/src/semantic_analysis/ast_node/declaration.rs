@@ -36,7 +36,7 @@ pub enum TypedDeclaration {
     AbiDeclaration(TypedAbiDeclaration),
     // If type parameters are defined for a function, they are put in the namespace just for
     // the body of that function.
-    GenericTypeForFunctionScope { name: Ident, type_id: TypeId },
+    GenericTypeInScope { name: Ident, type_id: TypeId },
     ErrorRecovery,
     StorageDeclaration(TypedStorageDeclaration),
     StorageReassignment(TypeCheckedStorageReassignment),
@@ -60,7 +60,7 @@ impl CopyTypes for TypedDeclaration {
             AbiDeclaration(..) => (),
             StorageDeclaration(..) => (),
             StorageReassignment(..) => (),
-            GenericTypeForFunctionScope { .. } | ErrorRecovery => (),
+            GenericTypeInScope { .. } | ErrorRecovery => (),
         }
     }
 }
@@ -86,7 +86,7 @@ impl Spanned for TypedDeclaration {
             ImplTrait(TypedImplTrait { span, .. }) => span.clone(),
             StorageDeclaration(decl) => decl.span(),
             StorageReassignment(decl) => decl.span(),
-            ErrorRecovery | GenericTypeForFunctionScope { .. } => {
+            ErrorRecovery | GenericTypeInScope { .. } => {
                 unreachable!("No span exists for these ast node types")
             }
         }
@@ -196,7 +196,7 @@ impl UnresolvedTypeCheck for TypedDeclaration {
             | EnumDeclaration(_)
             | ImplTrait { .. }
             | AbiDeclaration(_)
-            | GenericTypeForFunctionScope { .. } => vec![],
+            | GenericTypeInScope { .. } => vec![],
         }
     }
 }
@@ -359,7 +359,7 @@ impl TypedDeclaration {
             Reassignment(_) => "reassignment",
             ImplTrait { .. } => "impl trait",
             AbiDeclaration(..) => "abi",
-            GenericTypeForFunctionScope { .. } => "generic type parameter",
+            GenericTypeInScope { .. } => "generic type parameter",
             ErrorRecovery => "error",
             StorageDeclaration(_) => "contract storage declaration",
             StorageReassignment(_) => "contract storage reassignment",
@@ -385,7 +385,7 @@ impl TypedDeclaration {
             TypedDeclaration::StorageDeclaration(decl) => insert_type(TypeInfo::Storage {
                 fields: decl.fields_as_typed_struct_fields(),
             }),
-            TypedDeclaration::GenericTypeForFunctionScope { name, type_id } => {
+            TypedDeclaration::GenericTypeInScope { name, type_id } => {
                 insert_type(TypeInfo::Ref(*type_id, name.span()))
             }
             decl => {
@@ -405,7 +405,7 @@ impl TypedDeclaration {
     pub(crate) fn visibility(&self) -> Visibility {
         use TypedDeclaration::*;
         match self {
-            GenericTypeForFunctionScope { .. }
+            GenericTypeInScope { .. }
             | Reassignment(..)
             | ImplTrait { .. }
             | StorageDeclaration { .. }

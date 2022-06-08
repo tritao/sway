@@ -86,10 +86,10 @@ impl Root {
                 {
                     Some(TypedDeclaration::StructDeclaration(decl)) => {
                         let new_decl = check!(
-                            decl.monomorphize(
+                            decl.monomorphize_with_self(
                                 type_arguments,
                                 enforce_type_arguments,
-                                Some(self_type),
+                                self_type,
                                 Some(span),
                                 self,
                                 mod_path // NOTE: Once `TypeInfo::Custom` takes a `CallPath`, this will need to change
@@ -102,10 +102,10 @@ impl Root {
                     }
                     Some(TypedDeclaration::EnumDeclaration(decl)) => {
                         let new_decl = check!(
-                            decl.monomorphize(
+                            decl.monomorphize_with_self(
                                 type_arguments,
                                 enforce_type_arguments,
-                                Some(self_type),
+                                self_type,
                                 Some(span),
                                 self,
                                 mod_path // NOTE: Once `TypeInfo::Custom` takes a `CallPath`, this will need to change
@@ -116,7 +116,7 @@ impl Root {
                         );
                         new_decl.create_type_id()
                     }
-                    Some(TypedDeclaration::GenericTypeForFunctionScope { name, type_id }) => {
+                    Some(TypedDeclaration::GenericTypeInScope { name, type_id }) => {
                         insert_type(TypeInfo::Ref(type_id, name.span()))
                     }
                     _ => {
@@ -186,10 +186,9 @@ impl Root {
                 {
                     Some(TypedDeclaration::StructDeclaration(decl)) => {
                         let new_decl = check!(
-                            decl.monomorphize(
+                            decl.monomorphize_without_self(
                                 type_arguments,
-                                EnforceTypeArguments::No,
-                                None,
+                                EnforceTypeArguments::Yes,
                                 None,
                                 self,
                                 mod_path // NOTE: Once `TypeInfo::Custom` takes a `CallPath`, this will need to change
@@ -202,10 +201,9 @@ impl Root {
                     }
                     Some(TypedDeclaration::EnumDeclaration(decl)) => {
                         let new_decl = check!(
-                            decl.monomorphize(
+                            decl.monomorphize_without_self(
                                 type_arguments,
-                                EnforceTypeArguments::No,
-                                None,
+                                EnforceTypeArguments::Yes,
                                 None,
                                 self,
                                 mod_path // NOTE: Once `TypeInfo::Custom` takes a `CallPath`, this will need to change
@@ -215,6 +213,9 @@ impl Root {
                             errors
                         );
                         new_decl.create_type_id()
+                    }
+                    Some(TypedDeclaration::GenericTypeInScope { name, type_id }) => {
+                        insert_type(TypeInfo::Ref(type_id, name.span()))
                     }
                     _ => insert_type(TypeInfo::Unknown),
                 }

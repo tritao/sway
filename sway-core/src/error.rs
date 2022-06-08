@@ -507,6 +507,8 @@ pub enum CompileError {
         fn_name: Ident,
         args: String,
     },
+    #[error("Nested type arguments are not allowed in type parameters.")]
+    TypeArgumentsNotAllowedInTypeParameters(Span),
     #[error(
         "Asm opcode has multiple immediates specified, when any opcode has at most one immediate."
     )]
@@ -702,6 +704,10 @@ pub enum CompileError {
     UnrecognizedOp { op_name: Ident, span: Span },
     #[error("Cannot infer type for type parameter \"{ty}\". Insufficient type information provided. Try annotating its type.")]
     UnableToInferGeneric { ty: String, span: Span },
+    #[error("The generic type parameter \"{ty}\" is unconstrained.")]
+    UnconstrainedGenericParameter { ty: String, span: Span },
+    #[error("The type \"{ty}\" cannot be a generic type parameter.")]
+    InvalidGenericTypeName { ty: String, span: Span },
     #[error("The value \"{val}\" is too large to fit in this 6-bit immediate spot.")]
     Immediate06TooLarge { val: u64, span: Span },
     #[error("The value \"{val}\" is too large to fit in this 12-bit immediate spot.")]
@@ -995,6 +1001,7 @@ impl Spanned for CompileError {
             ReassignmentToNonVariable { span, .. } => span.clone(),
             AssignmentToNonMutable { name } => name.span(),
             TypeParameterNotInTypeScope { span, .. } => span.clone(),
+            TypeArgumentsNotAllowedInTypeParameters(span) => span.clone(),
             MultipleImmediates(span) => span.clone(),
             MismatchedTypeInTrait { span, .. } => span.clone(),
             NotATrait { span, .. } => span.clone(),
@@ -1032,6 +1039,8 @@ impl Spanned for CompileError {
             UnknownEnumVariant { span, .. } => span.clone(),
             UnrecognizedOp { span, .. } => span.clone(),
             UnableToInferGeneric { span, .. } => span.clone(),
+            UnconstrainedGenericParameter { span, .. } => span.clone(),
+            InvalidGenericTypeName { span, .. } => span.clone(),
             Immediate06TooLarge { span, .. } => span.clone(),
             Immediate12TooLarge { span, .. } => span.clone(),
             Immediate18TooLarge { span, .. } => span.clone(),

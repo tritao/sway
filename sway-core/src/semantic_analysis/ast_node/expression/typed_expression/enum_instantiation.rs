@@ -19,11 +19,11 @@ pub(crate) fn instantiate_enum(
 
     // monomorphize the enum definition with the type arguments
     let enum_decl = check!(
-        namespace.monomorphize(
+        namespace.monomorphize_with_self(
             enum_decl,
             type_arguments,
             EnforceTypeArguments::No,
-            Some(self_type),
+            self_type,
             Some(&enum_field_name.span())
         ),
         return err(warnings, errors),

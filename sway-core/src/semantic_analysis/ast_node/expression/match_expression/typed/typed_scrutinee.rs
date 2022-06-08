@@ -82,12 +82,12 @@ impl TypedScrutinee {
                 );
                 // monomorphize the struct definition
                 let struct_decl = check!(
-                    namespace.monomorphize(
+                    namespace.monomorphize_with_self(
                         struct_decl,
                         vec!(),
                         EnforceTypeArguments::No,
-                        Some(self_type),
-                        None
+                        self_type,
+                        Some(&struct_name.span())
                     ),
                     return err(warnings, errors),
                     warnings,
@@ -140,7 +140,7 @@ impl TypedScrutinee {
                         return err(warnings, errors);
                     }
                 };
-                let variant_name = call_path.suffix;
+                let variant_name = call_path.suffix.clone();
                 // find the enum definition from the name
                 let unknown_decl = check!(
                     namespace.resolve_symbol(enum_name).cloned(),
@@ -156,12 +156,12 @@ impl TypedScrutinee {
                 );
                 // monomorphize the enum definition
                 let enum_decl = check!(
-                    namespace.monomorphize(
+                    namespace.monomorphize_with_self(
                         enum_decl,
                         vec!(),
                         EnforceTypeArguments::No,
-                        Some(self_type),
-                        None
+                        self_type,
+                        Some(&call_path.span())
                     ),
                     return err(warnings, errors),
                     warnings,

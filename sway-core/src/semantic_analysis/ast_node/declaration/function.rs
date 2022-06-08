@@ -86,11 +86,7 @@ impl MonomorphizeHelper for TypedFunctionDeclaration {
         &self.name
     }
 
-    fn monomorphize_inner(
-        self,
-        type_mapping: &TypeMapping,
-        _namespace: &mut Items,
-    ) -> Self::Output {
+    fn monomorphize_self(self, type_mapping: &TypeMapping, _namespace: &mut Items) -> Self::Output {
         let mut new_decl = self;
         new_decl.copy_types(type_mapping);
         new_decl
@@ -154,35 +150,20 @@ impl TypedFunctionDeclaration {
         is_snake_case(&name).ok(&mut warnings, &mut errors);
         opts.purity = purity;
 
-        // insert parameters and generic type declarations into namespace
+        // insert parameters and generic type declarations into the namespace
         let mut namespace = namespace.clone();
 
-        // insert type parameters as Unknown types
-        let type_mapping = insert_type_parameters(&type_parameters);
-
-        // update the types in the type parameters, insert the type parameters
-        // into the decl namespace, and check to see if the type parameters
-        // shadow one another
+        // type check the type parameters and insert them into the namespace
         for type_parameter in type_parameters.iter_mut() {
             check!(
-                type_parameter.update_types_with_self(&type_mapping, &mut namespace, self_type),
+                TypeParameter::type_check(type_parameter, &mut namespace),
                 return err(warnings, errors),
-                warnings,
-                errors
-            );
-            let type_parameter_decl = TypedDeclaration::GenericTypeForFunctionScope {
-                name: type_parameter.name_ident.clone(),
-                type_id: type_parameter.type_id,
-            };
-            check!(
-                namespace.insert_symbol(type_parameter.name_ident.clone(), type_parameter_decl),
-                continue,
                 warnings,
                 errors
             );
         }
 
-        // type check the parameters and insert them into the function namespace
+        // type check the parameters and insert them into the namespace
         let mut new_parameters = vec![];
         for parameter in parameters.into_iter() {
             let parameter = check!(
@@ -341,9 +322,10 @@ impl TypedFunctionDeclaration {
                 |TypedFunctionParameter {
                      r#type, type_span, ..
                  }| {
-                    resolve_type(*r#type, type_span)
+                    #[allow(clippy::needless_borrow)]
+                    resolve_type(*r#type, &type_span)
                         .expect("unreachable I think?")
-                        .to_selector_name(type_span)
+                        .to_selector_name(&type_span)
                 },
             )
             .filter_map(|name| name.ok(&mut warnings, &mut errors))

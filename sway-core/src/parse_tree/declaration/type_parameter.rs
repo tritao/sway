@@ -1,11 +1,14 @@
-use crate::{error::*, parse_tree::*, semantic_analysis::*, type_engine::*};
+use crate::{
+    error::{err, ok},
+    parse_tree::*,
+    semantic_analysis::*,
+    type_engine::*,
+    CompileError, CompileResult,
+};
 
 use sway_types::{ident::Ident, span::Span, Spanned};
 
-use std::{
-    convert::From,
-    hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Eq)]
 pub struct TypeParameter {
@@ -36,15 +39,6 @@ impl PartialEq for TypeParameter {
     }
 }
 
-impl From<&TypeParameter> for TypedDeclaration {
-    fn from(n: &TypeParameter) -> Self {
-        TypedDeclaration::GenericTypeForFunctionScope {
-            name: n.name_ident.clone(),
-            type_id: n.type_id,
-        }
-    }
-}
-
 impl CopyTypes for TypeParameter {
     fn copy_types(&mut self, type_mapping: &TypeMapping) {
         self.type_id = match look_up_type_id(self.type_id).matches_type_parameter(type_mapping) {
@@ -57,55 +51,51 @@ impl CopyTypes for TypeParameter {
     }
 }
 
-impl UpdateTypes for TypeParameter {
-    fn update_types_with_self(
-        &mut self,
-        type_mapping: &TypeMapping,
-        namespace: &mut Namespace,
-        self_type: TypeId,
-    ) -> CompileResult<()> {
-        let mut warnings = vec![];
-        let mut errors = vec![];
-        self.type_id = match look_up_type_id(self.type_id).matches_type_parameter(type_mapping) {
-            Some(matching_id) => insert_type(TypeInfo::Ref(matching_id, self.span())),
-            None => check!(
-                namespace.resolve_type_with_self(
-                    look_up_type_id(self.type_id),
-                    self_type,
-                    &self.span(),
-                    EnforceTypeArguments::Yes
-                ),
-                insert_type(TypeInfo::ErrorRecovery),
-                warnings,
-                errors,
-            ),
-        };
-        ok((), warnings, errors)
-    }
-
-    fn update_types_without_self(
-        &mut self,
-        type_mapping: &TypeMapping,
-        namespace: &mut Namespace,
-    ) -> CompileResult<()> {
-        let mut warnings = vec![];
-        let mut errors = vec![];
-        self.type_id = match look_up_type_id(self.type_id).matches_type_parameter(type_mapping) {
-            Some(matching_id) => insert_type(TypeInfo::Ref(matching_id, self.span())),
-            None => check!(
-                namespace.resolve_type_without_self(look_up_type_id(self.type_id)),
-                insert_type(TypeInfo::ErrorRecovery),
-                warnings,
-                errors,
-            ),
-        };
-        ok((), warnings, errors)
-    }
-}
-
 impl Spanned for TypeParameter {
     fn span(&self) -> Span {
         self.name_ident.span()
+    }
+}
+
+impl TypeParameter {
+    pub(crate) fn type_check(&mut self, namespace: &mut Namespace) -> CompileResult<()> {
+        let warnings = vec![];
+        let mut errors = vec![];
+        self.type_id = insert_type(TypeInfo::UnknownGeneric {
+            name: self.name_ident.clone(),
+        });
+        match look_up_type_id(self.type_id) {
+            TypeInfo::Custom {
+                name,
+                type_arguments,
+            } => {
+                if !type_arguments.is_empty() {
+                    let type_arguments_span = type_arguments
+                        .iter()
+                        .map(|x| x.span.clone())
+                        .reduce(Span::join)
+                        .unwrap_or_else(|| name.span());
+                    errors.push(CompileError::TypeArgumentsNotAllowedInTypeParameters(
+                        type_arguments_span,
+                    ));
+                    err(warnings, errors)
+                } else {
+                    let type_parameter_decl = TypedDeclaration::GenericTypeInScope {
+                        name: self.name_ident.clone(),
+                        type_id: self.type_id,
+                    };
+                    namespace.insert_symbol(self.name_ident.clone(), type_parameter_decl);
+                    ok((), warnings, errors)
+                }
+            }
+            ty => {
+                errors.push(CompileError::InvalidGenericTypeName {
+                    ty: ty.to_string(),
+                    span: self.span(),
+                });
+                err(warnings, errors)
+            }
+        }
     }
 }
 

@@ -123,19 +123,20 @@ impl Namespace {
             .resolve_type_without_self(type_info, &self.mod_path)
     }
 
-    /// Short-hand for calling `monomorphize` from the `Monomorphize` trait, on `root` with the `mod_path`.
-    pub(crate) fn monomorphize<T>(
+    /// Short-hand for calling `monomorphize_with_self` from the `Monomorphize` trait,
+    /// on `root` with the `mod_path`.
+    pub(crate) fn monomorphize_with_self<T>(
         &mut self,
         decl: T,
         type_arguments: Vec<TypeArgument>,
         enforce_type_arguments: EnforceTypeArguments,
-        self_type: Option<TypeId>,
+        self_type: TypeId,
         call_site_span: Option<&Span>,
     ) -> CompileResult<T>
     where
         T: MonomorphizeHelper<Output = T> + Spanned,
     {
-        decl.monomorphize(
+        decl.monomorphize_with_self(
             type_arguments,
             enforce_type_arguments,
             self_type,

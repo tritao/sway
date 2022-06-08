@@ -6,11 +6,10 @@ use crate::{
     error::{err, ok},
     semantic_analysis::{Mode, TCOpts, TypeCheckArguments},
     type_engine::{
-        insert_type, insert_type_parameters, look_up_type_id, resolve_type, unify_with_self,
-        CopyTypes, TypeId, TypeMapping, UpdateTypes,
+        insert_type, look_up_type_id, resolve_type, unify_with_self, CopyTypes, TypeId, TypeMapping,
     },
     CallPath, CompileError, CompileResult, FunctionDeclaration, ImplSelf, ImplTrait, Namespace,
-    Purity, TypeInfo, TypedDeclaration, TypedFunctionDeclaration,
+    Purity, TypeInfo, TypeParameter, TypedDeclaration, TypedFunctionDeclaration,
 };
 
 use super::TypedTraitFn;
@@ -65,26 +64,11 @@ impl TypedImplTrait {
         // create the namespace for the impl
         let mut namespace = namespace.clone();
 
-        // insert type parameters as Unknown types
-        let type_mapping = insert_type_parameters(&type_parameters);
-
-        // update the types in the type parameters, insert the type parameters
-        // into the decl namespace, and check to see if the type parameters
-        // shadow one another
+        // type check the type parameters and insert them into the namespace
         for type_parameter in type_parameters.iter_mut() {
             check!(
-                type_parameter.update_types_without_self(&type_mapping, &mut namespace),
+                TypeParameter::type_check(type_parameter, &mut namespace),
                 return err(warnings, errors),
-                warnings,
-                errors
-            );
-            let type_parameter_decl = TypedDeclaration::GenericTypeForFunctionScope {
-                name: type_parameter.name_ident.clone(),
-                type_id: type_parameter.type_id,
-            };
-            check!(
-                namespace.insert_symbol(type_parameter.name_ident.clone(), type_parameter_decl),
-                continue,
                 warnings,
                 errors
             );
@@ -212,26 +196,11 @@ impl TypedImplTrait {
         // create the namespace for the impl
         let mut namespace = namespace.clone();
 
-        // insert type parameters as Unknown types
-        let type_mapping = insert_type_parameters(&type_parameters);
-
-        // update the types in the type parameters, insert the type parameters
-        // into the decl namespace, and check to see if the type parameters
-        // shadow one another
+        // type check the type parameters and insert them into the namespace
         for type_parameter in type_parameters.iter_mut() {
             check!(
-                type_parameter.update_types_without_self(&type_mapping, &mut namespace),
+                TypeParameter::type_check(type_parameter, &mut namespace),
                 return err(warnings, errors),
-                warnings,
-                errors
-            );
-            let type_parameter_decl = TypedDeclaration::GenericTypeForFunctionScope {
-                name: type_parameter.name_ident.clone(),
-                type_id: type_parameter.type_id,
-            };
-            check!(
-                namespace.insert_symbol(type_parameter.name_ident.clone(), type_parameter_decl),
-                continue,
                 warnings,
                 errors
             );

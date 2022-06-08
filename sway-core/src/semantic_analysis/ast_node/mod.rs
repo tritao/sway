@@ -1061,7 +1061,8 @@ fn convert_trait_methods_to_dummy_funcs(
                                 trait_namespace.resolve_type_with_self(
                                     look_up_type_id(*type_id),
                                     insert_type(TypeInfo::SelfType),
-                                    type_span,
+                                    #[allow(clippy::needless_borrow)]
+                                    &type_span,
                                     EnforceTypeArguments::Yes
                                 ),
                                 insert_type(TypeInfo::ErrorRecovery),
@@ -1077,7 +1078,8 @@ fn convert_trait_methods_to_dummy_funcs(
                     trait_namespace.resolve_type_with_self(
                         return_type.clone(),
                         insert_type(TypeInfo::SelfType),
-                        return_type_span,
+                        #[allow(clippy::needless_borrow)]
+                        &return_type_span,
                         EnforceTypeArguments::Yes
                     ),
                     insert_type(TypeInfo::ErrorRecovery),

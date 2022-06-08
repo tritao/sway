@@ -191,7 +191,7 @@ fn compile_declarations(
             | TypedDeclaration::Reassignment(_)
             | TypedDeclaration::StorageReassignment(_)
             | TypedDeclaration::AbiDeclaration(_)
-            | TypedDeclaration::GenericTypeForFunctionScope { .. }
+            | TypedDeclaration::GenericTypeInScope { .. }
             | TypedDeclaration::StorageDeclaration(_)
             | TypedDeclaration::ErrorRecovery => (),
         }
@@ -538,7 +538,7 @@ impl FnCompiler {
                                 span: ast_node.span,
                             })
                         }
-                        TypedDeclaration::GenericTypeForFunctionScope { .. } => {
+                        TypedDeclaration::GenericTypeInScope { .. } => {
                             Err(CompileError::UnexpectedDeclaration {
                                 decl_type: "abi",
                                 span: ast_node.span,

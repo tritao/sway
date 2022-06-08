@@ -21,11 +21,11 @@ pub(crate) fn instantiate_function_application(
 
     // monomorphize the function declaration
     let function_decl = check!(
-        namespace.monomorphize(
+        namespace.monomorphize_with_self(
             function_decl,
             type_arguments,
             EnforceTypeArguments::No,
-            Some(self_type),
+            self_type,
             Some(&call_path.span())
         ),
         return err(warnings, errors),

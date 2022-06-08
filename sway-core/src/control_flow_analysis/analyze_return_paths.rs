@@ -173,7 +173,7 @@ fn connect_declaration(
         | StructDeclaration(_)
         | EnumDeclaration(_)
         | StorageDeclaration(_)
-        | GenericTypeForFunctionScope { .. } => leaves.to_vec(),
+        | GenericTypeInScope { .. } => leaves.to_vec(),
         VariableDeclaration(_) | ConstantDeclaration(_) => {
             let entry_node = graph.add_node(node.into());
             for leaf in leaves {

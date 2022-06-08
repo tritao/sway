@@ -1114,12 +1114,12 @@ impl TypedExpression {
 
         // monomorphize the struct definition
         let mut struct_decl = check!(
-            namespace.monomorphize(
+            namespace.monomorphize_with_self(
                 struct_decl,
                 type_arguments,
                 EnforceTypeArguments::No,
-                Some(self_type),
-                None
+                self_type,
+                Some(&call_path.span())
             ),
             return err(warnings, errors),
             warnings,

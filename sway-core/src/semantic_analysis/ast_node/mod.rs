@@ -1162,7 +1162,7 @@ fn convert_trait_methods_to_dummy_funcs(
                  name,
                  parameters,
                  return_type,
-                 return_type_span,
+                 ref return_type_span,
                  ..
              }| TypedFunctionDeclaration {
                 purity: Default::default(),
@@ -1174,7 +1174,7 @@ fn convert_trait_methods_to_dummy_funcs(
                         |FunctionParameter {
                              name,
                              type_id,
-                             type_span,
+                             ref type_span,
                          }| TypedFunctionParameter {
                             name: name.clone(),
                             r#type: check!(

@@ -1411,6 +1411,7 @@ pub fn build(
         bytecode = compiled.bytecode;
         source_map.insert_dependency(path.clone());
     }
+
     let compiled = Compiled { bytecode, json_abi };
     Ok((compiled, source_map))
 }
@@ -1420,7 +1421,8 @@ pub fn check(
     conf: &BuildConfig,
     sway_git_tag: &str,
 ) -> anyhow::Result<Vec<CompileAstResult>> {
-    let namespace_map = Default::default();
+    let mut namespace_map = Default::default();
+    let mut source_map = SourceMap::new();
     let mut ast_results = Vec::new();
     for &node in &plan.compilation_order {
         let dep_namespace =
@@ -1428,9 +1430,19 @@ pub fn check(
         let pkg = &plan.graph[node];
         let path = &plan.path_map[&pkg.id()];
         let manifest = ManifestFile::from_dir(path, sway_git_tag)?;
+        let res = compile(pkg, &manifest, conf, dep_namespace.clone(), &mut source_map)?;
+        let (compiled, maybe_namespace) = res;
+        if let Some(namespace) = maybe_namespace {
+            namespace_map.insert(node, namespace.into());
+        }
+        source_map.insert_dependency(path.clone());
+        
+        // return just the last one instead of all in a vec
         let ast_res = compile_ast(&manifest, conf, dep_namespace)?;
         ast_results.push(ast_res);
     }
+
+    
 
     Ok(ast_results)
 }

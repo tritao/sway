@@ -25,6 +25,30 @@ pub struct TypedProgram {
 }
 
 impl TypedProgram {
+    /// Collect declarations for the given parsed program to produce a collection context.
+    ///
+    /// The given `initial_namespace` acts as an initial state for each module within this program.
+    /// It should contain a submodule for each library package dependency.
+    pub fn collect(
+        parsed: &ParseProgram,
+        initial_namespace: namespace::Module,
+    ) -> CompileResult<TypeCheckContext> {
+        let mut namespace = Namespace::init_root(initial_namespace);
+        let ctx = TypeCheckContext::from_root(&mut namespace);
+        let ParseProgram { root, kind } = parsed;
+        let mod_span = root.tree.span.clone();
+        let mod_res = TypedModule::collect(ctx, root);
+        mod_res.flat_map(|root| {
+            let kind_res = Self::validate_root(&root, kind.clone(), mod_span);
+            kind_res.map(|kind| Self {
+                kind,
+                root,
+                storage_slots: vec![],
+            })
+        });
+        ok!(ctx)
+    }
+
     /// Type-check the given parsed program to produce a typed program.
     ///
     /// The given `initial_namespace` acts as an initial state for each module within this program.

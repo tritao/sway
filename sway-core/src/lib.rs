@@ -238,6 +238,8 @@ pub fn parsed_to_ast(
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
 
+    TypedProgram::collect(parse_program, initial_namespace);
+
     let CompileResult {
         value: typed_program_result,
         warnings: new_warnings,

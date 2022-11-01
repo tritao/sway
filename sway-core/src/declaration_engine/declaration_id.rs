@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, hash::Hash, hash::Hasher};
 
 use sway_types::{Span, Spanned};
 
@@ -19,6 +19,12 @@ pub struct DeclarationId(usize, Span);
 impl Clone for DeclarationId {
     fn clone(&self) -> Self {
         Self(self.0, self.1.clone())
+    }
+}
+
+impl Hash for DeclarationId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 

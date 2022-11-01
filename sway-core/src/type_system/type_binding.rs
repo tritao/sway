@@ -192,6 +192,8 @@ impl TypeBinding<CallPath> {
                     errors
                 );
 
+                println!("enum monomorphize");
+
                 // monomorphize the copy, in place
                 check!(
                     ctx.monomorphize(
@@ -210,7 +212,7 @@ impl TypeBinding<CallPath> {
                     .insert_trait_implementation_for_type(new_copy.create_type_id());
 
                 // insert the new copy into the declaration engine
-                let new_id = de_insert_enum(new_copy);
+                let new_id = de_insert_enum(new_copy, CacheLookup::Enable);
 
                 ty::TyDeclaration::EnumDeclaration(new_id)
             }

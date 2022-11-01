@@ -1,4 +1,5 @@
 use crate::{
+    declaration_engine::{de_insert_enum, CacheLookup},
     error::*,
     language::{parsed::*, ty},
     semantic_analysis::*,
@@ -18,6 +19,8 @@ pub(crate) fn instantiate_enum(
     enum_variant_name: Ident,
     args: Vec<Expression>,
 ) -> CompileResult<ty::TyExpression> {
+    println!("instantiate_enum");
+
     let mut warnings = vec![];
     let mut errors = vec![];
 
@@ -34,22 +37,25 @@ pub(crate) fn instantiate_enum(
     // instantiator, then the type of the enum is necessarily the unit type.
 
     match (&args[..], look_up_type_id(enum_variant.type_id)) {
-        ([], ty) if ty.is_unit() => ok(
-            ty::TyExpression {
-                return_type: enum_decl.create_type_id(),
-                expression: ty::TyExpressionVariant::EnumInstantiation {
-                    tag: enum_variant.tag,
-                    contents: None,
-                    enum_decl,
-                    variant_name: enum_variant.name,
-                    enum_instantiation_span: enum_name.span(),
-                    variant_instantiation_span: enum_variant_name.span(),
+        ([], ty) if ty.is_unit() => {
+            let decl_id = de_insert_enum(enum_decl.clone(), CacheLookup::Enable);
+            ok(
+                ty::TyExpression {
+                    return_type: enum_decl.create_type_id(),
+                    expression: ty::TyExpressionVariant::EnumInstantiation {
+                        tag: enum_variant.tag,
+                        contents: None,
+                        enum_decl: decl_id,
+                        variant_name: enum_variant.name,
+                        enum_instantiation_span: enum_name.span(),
+                        variant_instantiation_span: enum_variant_name.span(),
+                    },
+                    span: enum_variant_name.span(),
                 },
-                span: enum_variant_name.span(),
-            },
-            warnings,
-            errors,
-        ),
+                warnings,
+                errors,
+            )
+        }
         ([single_expr], _) => {
             let ctx = ctx
                 .with_help_text("Enum instantiator must match its declared variant type.")
@@ -73,14 +79,14 @@ pub(crate) fn instantiate_enum(
 
             // we now know that the instantiator type matches the declared type, via the above tpe
             // check
-
+            let decl_id = de_insert_enum(enum_decl.clone(), CacheLookup::Enable);
             ok(
                 ty::TyExpression {
                     return_type: enum_decl.create_type_id(),
                     expression: ty::TyExpressionVariant::EnumInstantiation {
                         tag: enum_variant.tag,
                         contents: Some(Box::new(typed_expr)),
-                        enum_decl,
+                        enum_decl: decl_id,
                         variant_name: enum_variant.name,
                         enum_instantiation_span: enum_name.span(),
                         variant_instantiation_span: enum_variant_name.span(),

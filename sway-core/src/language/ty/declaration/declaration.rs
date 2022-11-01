@@ -27,6 +27,24 @@ pub enum TyDeclaration {
     StorageDeclaration(DeclarationId),
 }
 
+impl GetDeclId for TyDeclaration {
+    fn get_decl_id(&self) -> Option<DeclarationId> {
+        match self {
+            TyDeclaration::VariableDeclaration(_) => None,
+            TyDeclaration::ConstantDeclaration(_) => None,
+            TyDeclaration::FunctionDeclaration(_) => None,
+            TyDeclaration::TraitDeclaration(_) => None,
+            TyDeclaration::StructDeclaration(_) => None,
+            TyDeclaration::EnumDeclaration(decl) => Some(decl.clone()),
+            TyDeclaration::ImplTrait(_) => None,
+            TyDeclaration::AbiDeclaration(_) => None,
+            TyDeclaration::GenericTypeForFunctionScope { .. } => None,
+            TyDeclaration::ErrorRecovery => None,
+            TyDeclaration::StorageDeclaration(_) => None,
+        }
+    }
+}
+
 impl CopyTypes for TyDeclaration {
     fn copy_types_inner(&mut self, type_mapping: &TypeMapping) {
         use TyDeclaration::*;

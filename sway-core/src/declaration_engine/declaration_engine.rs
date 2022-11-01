@@ -1,10 +1,10 @@
-use std::fmt;
-
 use lazy_static::lazy_static;
+use std::sync::{Arc, RwLock};
+use std::{collections::HashMap, fmt};
 use sway_error::error::CompileError;
-use sway_types::{Span, Spanned};
+use sway_types::{Ident, Span, Spanned};
 
-use crate::{concurrent_slab::ConcurrentSlab, language::ty};
+use crate::{concurrent_slab::ConcurrentSlab, language::ty, TypeParameter};
 
 use super::{declaration_id::DeclarationId, declaration_wrapper::DeclarationWrapper};
 
@@ -12,10 +12,24 @@ lazy_static! {
     static ref DECLARATION_ENGINE: DeclarationEngine = DeclarationEngine::default();
 }
 
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct DeclarationSignature {
+    path: Arc<std::path::PathBuf>,
+    name: Ident,
+    type_parameters: Vec<TypeParameter>,
+}
+
+#[derive(PartialEq)]
+pub enum CacheLookup {
+    Enable,
+    Disable,
+}
+
 /// Used inside of type inference to store declarations.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct DeclarationEngine {
     slab: ConcurrentSlab<DeclarationWrapper>,
+    decls: RwLock<HashMap<DeclarationSignature, DeclarationId>>,
 }
 
 impl fmt::Display for DeclarationEngine {
@@ -149,9 +163,32 @@ impl DeclarationEngine {
         self.slab.get(*index).expect_constant(span)
     }
 
-    fn insert_enum(&self, enum_decl: ty::TyEnumDeclaration) -> DeclarationId {
-        let span = enum_decl.span();
-        self.insert(DeclarationWrapper::Enum(enum_decl), span)
+    fn insert_enum(
+        &self,
+        enum_decl: ty::TyEnumDeclaration,
+        cache_lookup: CacheLookup,
+    ) -> DeclarationId {
+        let lookup_decl = if cache_lookup == CacheLookup::Enable {
+            self.lookup_decl_from_sig(enum_decl.name.clone(), &enum_decl.type_parameters)
+        } else {
+            None
+        };
+
+        if let Some(id) = lookup_decl {
+            id
+        } else {
+            let span = enum_decl.span();
+            let id = self.insert(DeclarationWrapper::Enum(enum_decl.clone()), span);
+            let decl_sig = DeclarationSignature {
+                path: enum_decl.name.span().path().unwrap().clone(),
+                name: enum_decl.name,
+                type_parameters: enum_decl.type_parameters,
+            };
+            println!("insert_enum {:?}", decl_sig);
+            let mut decls = self.decls.write().unwrap();
+            decls.insert(decl_sig, id.clone());
+            id
+        }
     }
 
     fn get_enum(
@@ -160,6 +197,20 @@ impl DeclarationEngine {
         span: &Span,
     ) -> Result<ty::TyEnumDeclaration, CompileError> {
         self.slab.get(*index).expect_enum(span)
+    }
+
+    fn lookup_decl_from_sig(
+        &self,
+        name: Ident,
+        type_parameters: &[TypeParameter],
+    ) -> Option<DeclarationId> {
+        let decl_sig = DeclarationSignature {
+            path: name.span().path().unwrap().clone(),
+            name,
+            type_parameters: type_parameters.to_vec(),
+        };
+        let decls = self.decls.read().unwrap();
+        decls.get(&decl_sig).cloned()
     }
 }
 
@@ -266,8 +317,11 @@ pub fn de_get_constant(
     DECLARATION_ENGINE.get_constant(index, span)
 }
 
-pub(crate) fn de_insert_enum(enum_decl: ty::TyEnumDeclaration) -> DeclarationId {
-    DECLARATION_ENGINE.insert_enum(enum_decl)
+pub(crate) fn de_insert_enum(
+    enum_decl: ty::TyEnumDeclaration,
+    cache_lookup: CacheLookup,
+) -> DeclarationId {
+    DECLARATION_ENGINE.insert_enum(enum_decl, cache_lookup)
 }
 
 pub fn de_get_enum(
@@ -275,4 +329,8 @@ pub fn de_get_enum(
     span: &Span,
 ) -> Result<ty::TyEnumDeclaration, CompileError> {
     DECLARATION_ENGINE.get_enum(index, span)
+}
+
+pub fn de_lookup_enum(name: Ident, type_parameters: &[TypeParameter]) -> Option<DeclarationId> {
+    DECLARATION_ENGINE.lookup_decl_from_sig(name, type_parameters)
 }

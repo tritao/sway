@@ -331,6 +331,8 @@ impl<'ir> EvmAsmBuilder<'ir> {
                     gas,
                     ..
                 } => self.compile_contract_call(instr_val, params, coins, asset_id, gas),
+                Instruction::EVM(evm_instr) => self.compile_evm_instruction(evm_instr),
+
                 Instruction::ExtractElement {
                     array,
                     ty,
@@ -708,6 +710,622 @@ impl<'ir> EvmAsmBuilder<'ir> {
         todo!();
     }
 
+    fn compile_evm_instruction(&mut self, evm_instr: &EVMInstruction) {
+        match evm_instr {
+            EVMInstruction::Stop => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Stop(Stop)));
+            }
+            EVMInstruction::Add => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Add(Add)));
+            }
+            EVMInstruction::Mul => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Mul(Mul)));
+            }
+            EVMInstruction::Sub => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Sub(Sub)));
+            }
+            EVMInstruction::Div => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Div(Div)));
+            }
+            EVMInstruction::SDiv => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SDiv(SDiv)));
+            }
+            EVMInstruction::Mod => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Mod(Mod)));
+            }
+            EVMInstruction::SMod => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SMod(SMod)));
+            }
+            EVMInstruction::AddMod => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::AddMod(AddMod)));
+            }
+            EVMInstruction::MulMod => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::MulMod(MulMod)));
+            }
+            EVMInstruction::Exp => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Exp(Exp)));
+            }
+            EVMInstruction::SignExtend => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SignExtend(SignExtend)));
+            }
+            EVMInstruction::Lt => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Lt(Lt)));
+            }
+            EVMInstruction::Gt => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Gt(Gt)));
+            }
+            EVMInstruction::SLt => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SLt(SLt)));
+            }
+            EVMInstruction::SGt => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SGt(SGt)));
+            }
+            EVMInstruction::Eq => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Eq(Eq)));
+            }
+            EVMInstruction::IsZero => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::IsZero(IsZero)));
+            }
+            EVMInstruction::And => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::And(And)));
+            }
+            EVMInstruction::Or => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Or(Or)));
+            }
+            EVMInstruction::Xor => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Xor(Xor)));
+            }
+            EVMInstruction::Not => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Not(Not)));
+            }
+            EVMInstruction::Byte => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Byte(Byte)));
+            }
+            EVMInstruction::Shl => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Shl(Shl)));
+            }
+            EVMInstruction::Shr => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Shr(Shr)));
+            }
+            EVMInstruction::Sar => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Sar(Sar)));
+            }
+            EVMInstruction::SHA3 => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Keccak256(Keccak256)));
+            }
+            EVMInstruction::Address => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Address(Address)));
+            }
+            EVMInstruction::Balance => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Balance(Balance)));
+            }
+            EVMInstruction::Origin => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Origin(Origin)));
+            }
+            EVMInstruction::Caller => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Caller(Caller)));
+            }
+            EVMInstruction::CallValue => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CallValue(CallValue)));
+            }
+            EVMInstruction::CallDataLoad => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CallDataLoad(CallDataLoad)));
+            }
+            EVMInstruction::CallDataSize => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CallDataSize(CallDataSize)));
+            }
+            EVMInstruction::CallDataCopy => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CallDataCopy(CallDataCopy)));
+            }
+            EVMInstruction::CodeSize => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CodeSize(CodeSize)));
+            }
+            EVMInstruction::CodeCopy => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CodeCopy(CodeCopy)));
+            }
+            EVMInstruction::GasPrice => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::GasPrice(GasPrice)));
+            }
+            EVMInstruction::ExtCodeSize => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::ExtCodeSize(ExtCodeSize)));
+            }
+            EVMInstruction::ExtCodeCopy => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::ExtCodeCopy(ExtCodeCopy)));
+            }
+            EVMInstruction::ReturnDataSize => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::ReturnDataSize(ReturnDataSize)));
+            }
+            EVMInstruction::ReturnDataCopy => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::ReturnDataCopy(ReturnDataCopy)));
+            }
+            EVMInstruction::ExtCodeHash => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::ExtCodeHash(ExtCodeHash)));
+            }
+            EVMInstruction::BlockHash => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::BlockHash(BlockHash)));
+            }
+            EVMInstruction::Coinbase => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Coinbase(Coinbase)));
+            }
+            EVMInstruction::Timestamp => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Timestamp(Timestamp)));
+            }
+            EVMInstruction::Number => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Number(Number)));
+            }
+            EVMInstruction::PrevRANDAO => {
+                todo!("not yet available in ETK")
+            }
+            EVMInstruction::GasLimit => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::GasLimit(GasLimit)));
+            }
+            EVMInstruction::ChainId => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::ChainId(ChainId)));
+            }
+            EVMInstruction::SelfBalance => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SelfBalance(SelfBalance)));
+            }
+            EVMInstruction::BaseFee => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::BaseFee(BaseFee)));
+            }
+            EVMInstruction::Pop => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Pop(Pop)));
+            }
+            EVMInstruction::MLoad => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::MLoad(MLoad)));
+            }
+            EVMInstruction::MStore => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::MStore(MStore)));
+            }
+            EVMInstruction::MStore8 => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::MStore8(MStore8)));
+            }
+            EVMInstruction::SLoad => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SLoad(SLoad)));
+            }
+            EVMInstruction::SStore => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SStore(SStore)));
+            }
+            EVMInstruction::Jump => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Jump(Jump)));
+            }
+            EVMInstruction::JumpI => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::JumpI(JumpI)));
+            }
+            EVMInstruction::PC => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::GetPc(GetPc)));
+            }
+            EVMInstruction::MSize => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::MSize(MSize)));
+            }
+            EVMInstruction::Gas => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Gas(Gas)));
+            }
+            EVMInstruction::JumpDest => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::JumpDest(JumpDest)));
+            }
+            EVMInstruction::Push {
+                size: num_items,
+                value,
+            } => {
+                let imm = self.ir_value_to_immediate(value);
+                let op = match num_items {
+                    1 => AbstractOp::new(Op::Push1(Push1(imm))),
+                    2 => AbstractOp::new(Op::Push2(Push2(imm))),
+                    3 => AbstractOp::new(Op::Push3(Push3(imm))),
+                    4 => AbstractOp::new(Op::Push4(Push4(imm))),
+                    5 => AbstractOp::new(Op::Push5(Push5(imm))),
+                    6 => AbstractOp::new(Op::Push6(Push6(imm))),
+                    7 => AbstractOp::new(Op::Push7(Push7(imm))),
+                    8 => AbstractOp::new(Op::Push8(Push8(imm))),
+                    9 => AbstractOp::new(Op::Push9(Push9(imm))),
+                    10 => AbstractOp::new(Op::Push10(Push10(imm))),
+                    11 => AbstractOp::new(Op::Push11(Push11(imm))),
+                    12 => AbstractOp::new(Op::Push12(Push12(imm))),
+                    13 => AbstractOp::new(Op::Push13(Push13(imm))),
+                    14 => AbstractOp::new(Op::Push14(Push14(imm))),
+                    15 => AbstractOp::new(Op::Push15(Push15(imm))),
+                    16 => AbstractOp::new(Op::Push16(Push16(imm))),
+                    17 => AbstractOp::new(Op::Push17(Push17(imm))),
+                    18 => AbstractOp::new(Op::Push18(Push18(imm))),
+                    19 => AbstractOp::new(Op::Push19(Push19(imm))),
+                    20 => AbstractOp::new(Op::Push20(Push20(imm))),
+                    21 => AbstractOp::new(Op::Push21(Push21(imm))),
+                    22 => AbstractOp::new(Op::Push22(Push22(imm))),
+                    23 => AbstractOp::new(Op::Push23(Push23(imm))),
+                    24 => AbstractOp::new(Op::Push24(Push24(imm))),
+                    25 => AbstractOp::new(Op::Push25(Push25(imm))),
+                    26 => AbstractOp::new(Op::Push26(Push26(imm))),
+                    27 => AbstractOp::new(Op::Push27(Push27(imm))),
+                    28 => AbstractOp::new(Op::Push28(Push28(imm))),
+                    29 => AbstractOp::new(Op::Push29(Push29(imm))),
+                    30 => AbstractOp::new(Op::Push30(Push30(imm))),
+                    31 => AbstractOp::new(Op::Push31(Push31(imm))),
+                    32 => AbstractOp::new(Op::Push32(Push32(imm))),
+                    _ => panic!("invalid number of items in PUSH instruction"),
+                };
+                self.cur_section.as_mut().unwrap().ops.push(op);
+            }
+            EVMInstruction::Dup { index } => {
+                let op = match index {
+                    1 => AbstractOp::new(Op::Dup1(Dup1)),
+                    2 => AbstractOp::new(Op::Dup2(Dup2)),
+                    3 => AbstractOp::new(Op::Dup3(Dup3)),
+                    4 => AbstractOp::new(Op::Dup4(Dup4)),
+                    5 => AbstractOp::new(Op::Dup5(Dup5)),
+                    6 => AbstractOp::new(Op::Dup6(Dup6)),
+                    7 => AbstractOp::new(Op::Dup7(Dup7)),
+                    8 => AbstractOp::new(Op::Dup8(Dup8)),
+                    9 => AbstractOp::new(Op::Dup9(Dup9)),
+                    10 => AbstractOp::new(Op::Dup10(Dup10)),
+                    11 => AbstractOp::new(Op::Dup11(Dup11)),
+                    12 => AbstractOp::new(Op::Dup12(Dup12)),
+                    13 => AbstractOp::new(Op::Dup13(Dup13)),
+                    14 => AbstractOp::new(Op::Dup14(Dup14)),
+                    15 => AbstractOp::new(Op::Dup15(Dup15)),
+                    16 => AbstractOp::new(Op::Dup16(Dup16)),
+                    _ => panic!("invalid number of items in DUP instruction"),
+                };
+                self.cur_section.as_mut().unwrap().ops.push(op);
+            }
+            EVMInstruction::Swap { size } => {
+                let op = match size {
+                    1 => AbstractOp::new(Op::Swap1(Swap1)),
+                    2 => AbstractOp::new(Op::Swap2(Swap2)),
+                    3 => AbstractOp::new(Op::Swap3(Swap3)),
+                    4 => AbstractOp::new(Op::Swap4(Swap4)),
+                    5 => AbstractOp::new(Op::Swap5(Swap5)),
+                    6 => AbstractOp::new(Op::Swap6(Swap6)),
+                    7 => AbstractOp::new(Op::Swap7(Swap7)),
+                    8 => AbstractOp::new(Op::Swap8(Swap8)),
+                    9 => AbstractOp::new(Op::Swap9(Swap9)),
+                    10 => AbstractOp::new(Op::Swap10(Swap10)),
+                    11 => AbstractOp::new(Op::Swap11(Swap11)),
+                    12 => AbstractOp::new(Op::Swap12(Swap12)),
+                    13 => AbstractOp::new(Op::Swap13(Swap13)),
+                    14 => AbstractOp::new(Op::Swap14(Swap14)),
+                    15 => AbstractOp::new(Op::Swap15(Swap15)),
+                    16 => AbstractOp::new(Op::Swap16(Swap16)),
+                    _ => panic!("invalid number of items in SWAP instruction"),
+                };
+                self.cur_section.as_mut().unwrap().ops.push(op);
+            }
+            EVMInstruction::Log { topics } => {
+                let op = match topics {
+                    0 => AbstractOp::new(Op::Log0(Log0)),
+                    1 => AbstractOp::new(Op::Log1(Log1)),
+                    2 => AbstractOp::new(Op::Log2(Log2)),
+                    3 => AbstractOp::new(Op::Log3(Log3)),
+                    4 => AbstractOp::new(Op::Log4(Log4)),
+                    _ => panic!("invalid number of items in LOG instruction"),
+                };
+                self.cur_section.as_mut().unwrap().ops.push(op);
+            }
+            EVMInstruction::Create => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Create(Create)));
+            }
+            EVMInstruction::Call => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Call(Call)));
+            }
+            EVMInstruction::CallCode => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::CallCode(CallCode)));
+            }
+            EVMInstruction::Return => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Return(Return)));
+            }
+            EVMInstruction::DelegateCall => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::DelegateCall(DelegateCall)));
+            }
+            EVMInstruction::Create2 => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Create2(Create2)));
+            }
+            EVMInstruction::StaticCall => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::StaticCall(StaticCall)));
+            }
+            EVMInstruction::Revert => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Revert(Revert)));
+            }
+            EVMInstruction::Invalid => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::Invalid(Invalid)));
+            }
+            EVMInstruction::SelfDestruct => {
+                self.cur_section
+                    .as_mut()
+                    .unwrap()
+                    .ops
+                    .push(AbstractOp::new(Op::SelfDestruct(SelfDestruct)));
+            }
+        }
+    }
+
     pub(super) fn insert_block_label(&mut self, block: Block) {
         if &block.get_label(self.context) != "entry" {
             let label = self.block_to_label(&block);
@@ -725,5 +1343,18 @@ impl<'ir> EvmAsmBuilder<'ir> {
             self.block_label_map.insert(*block, label);
             label
         })
+    }
+
+    fn ir_value_to_immediate(&self, value: &Value) -> Imm {
+        match value.get_constant(self.context) {
+            Some(constant) => Imm::with_expression(Expression::Terminal(Terminal::Number(
+                match constant.value {
+                    ConstantValue::Uint(value) => value,
+                    _ => panic!("cannot convert non Uint IR value to EVM immediate value"),
+                }
+                .into(),
+            ))),
+            None => panic!("cannot convert non-constant IR value to EVM immediate value"),
+        }
     }
 }

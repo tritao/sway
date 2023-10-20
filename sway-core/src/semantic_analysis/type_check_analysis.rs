@@ -7,12 +7,15 @@ use std::fs;
 
 use petgraph::stable_graph::NodeIndex;
 use petgraph::Graph;
+use sway_error::error::CompileError;
 use sway_error::handler::{ErrorEmitted, Handler};
 
-use crate::decl_engine::{DeclId, DeclIdIndexType, DeclRef};
+use crate::decl_engine::{AssociatedItemDeclId, DeclId, DeclIdIndexType, DeclRef, DeclRefFunction};
 use crate::engine_threading::DebugWithEngines;
 use crate::language::ty::{self, TyImplItem, TyTraitItem};
 use crate::Engines;
+
+use graph_cycles::Cycles;
 
 pub type TyNodeDepGraphNodeId = petgraph::graph::NodeIndex;
 
@@ -120,6 +123,22 @@ impl TypeCheckAnalysisContext<'_> {
         &self,
         fn_ref: &DeclRef<DeclId<ty::TyFunctionDecl>>,
     ) -> Option<TyNodeDepGraphNodeId> {
+        let mut parents = self
+            .engines
+            .de()
+            .find_all_parents(self.engines, fn_ref.id())
+            .into_iter()
+            .filter_map(|f| match f {
+                AssociatedItemDeclId::TraitFn(_) => None,
+                AssociatedItemDeclId::Function(fn_id) => Some(fn_id),
+                AssociatedItemDeclId::Constant(_) => None,
+                AssociatedItemDeclId::Type(_) => None,
+            })
+            .collect::<Vec<_>>();
+
+        let mut possible_nodes = vec![*fn_ref.id()];
+        possible_nodes.append(&mut parents);
+
         for index in self.items_node_stack.iter().rev() {
             let node = self
                 .dep_graph
@@ -129,8 +148,10 @@ impl TypeCheckAnalysisContext<'_> {
                 node: TyTraitItem::Fn(item_fn_ref),
             } = node
             {
-                if fn_ref.name() == item_fn_ref.name() {
-                    return Some(*index);
+                for possible_node in possible_nodes.iter() {
+                    if possible_node.inner() == item_fn_ref.id().inner() {
+                        return Some(*index);
+                    }
                 }
             }
         }
@@ -173,6 +194,52 @@ impl TypeCheckAnalysisContext<'_> {
                     );
                 }
             }
+        }
+    }
+
+    pub(crate) fn check_recursive_calls(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        let cycles = self.dep_graph.cycles();
+
+        handler.scope(|handler| {
+            for sub_cycles in cycles {
+                if sub_cycles.len() == 1 {
+                    let node = self.dep_graph.node_weight(sub_cycles[0]).unwrap();
+                    let fn_ref = self.get_decl_ref_fn_from_node(node);
+
+                    handler.emit_err(CompileError::RecursiveCall {
+                        fn_name: fn_ref.name().clone(),
+                        span: fn_ref.decl_span().clone(),
+                    });
+                } else {
+                    let node = self.dep_graph.node_weight(sub_cycles[0]).unwrap();
+                    let fn_ref = self.get_decl_ref_fn_from_node(node);
+
+                    let mut call_chain = vec![];
+                    for i in sub_cycles.into_iter().skip(1).rev() {
+                        let node = self.dep_graph.node_weight(i).unwrap();
+                        let fn_ref = self.get_decl_ref_fn_from_node(node);
+                        call_chain.push(fn_ref.name().to_string());
+                    }
+
+                    handler.emit_err(CompileError::RecursiveCallChain {
+                        fn_name: fn_ref.name().clone(),
+                        call_chain: call_chain.join(" -> "),
+                        span: fn_ref.decl_span().clone(),
+                    });
+                }
+            }
+            Ok(())
+        })
+    }
+
+    pub(crate) fn get_decl_ref_fn_from_node(&self, node: &TyNodeDepGraphNode) -> DeclRefFunction {
+        match node {
+            TyNodeDepGraphNode::ImplTrait { .. } => unreachable!(),
+            TyNodeDepGraphNode::ImplTraitItem { node } => match node {
+                TyTraitItem::Fn(node) => node.clone(),
+                TyTraitItem::Constant(_) => unreachable!(),
+                TyTraitItem::Type(_) => unreachable!(),
+            },
         }
     }
 

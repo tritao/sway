@@ -110,4 +110,31 @@ impl<K, V> StorageKey<StorageMap<K, V>> where K: Hash {
         let key = sha256((key, self.slot));
         clear::<V>(key, 0)
     }
+
+    
+    /// Tries to insert a value for a key if the key does not already have a value.
+    ///
+    /// # Arguments
+    ///
+    /// * `key`: [K] - The key for which to insert the value.
+    /// * `value`: [V] - The value to insert.
+    ///
+    /// # Returns
+    ///
+    /// * [bool] - Returns true if the value was inserted, false if the key already had a value.
+    pub fn try_insert(self, key: K, value: V) -> bool {
+        // Pseudocode:
+        // 1. Check if the key already has an associated value.
+        // 2. If it does not, insert the new value.
+        // 3. Return true if the value was inserted, false otherwise.
+
+        // Example implementation:
+        // Maybe use get?
+        if self.get(key).is_none() {
+            self.insert(key, value);
+            true
+        } else {
+            false
+        }
+    }
 }

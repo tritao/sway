@@ -122,6 +122,15 @@ impl<K, V> StorageKey<StorageMap<K, V>> where K: Hash {
     /// # Returns
     ///
     /// * [bool] - Returns true if the value was inserted, false if the key already had a value.
+    ///
+    /// # Examples
+    ///
+    ///   ```sway
+    ///
+    ///   insert example here
+    ///
+    ///   ```
+    ///
     pub fn try_insert(self, key: K, value: V) -> bool {
         // Pseudocode:
         // 1. Check if the key already has an associated value.

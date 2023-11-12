@@ -3,6 +3,7 @@ library;
 use ::hash::*;
 use ::storage::storage_api::*;
 use ::storage::storage_key::*;
+use ::option::Option::{self, *};
 
 /// A persistent key-value pair mapping struct.
 pub struct StorageMap<K, V> where K: Hash {}
@@ -131,19 +132,15 @@ impl<K, V> StorageKey<StorageMap<K, V>> where K: Hash {
     ///
     ///   ```
     ///
-    pub fn try_insert(self, key: K, value: V) -> bool {
-        // Pseudocode:
-        // 1. Check if the key already has an associated value.
-        // 2. If it does not, insert the new value.
-        // 3. Return true if the value was inserted, false otherwise.
-
-        // Example implementation:
-        // Maybe use get?
-        if self.get(key).is_none() {
-            self.insert(key, value);
-            true
-        } else {
-            false
-        }
+    #[storage(read, write)]
+    pub fn try_insert(self, key: K, value: V) -> bool where K: Hash {
+        // match self.get(key).try_read() {
+        //     Some(_) => false,
+        //     None => {
+        //         self.insert(key, value);
+        //         true
+        //     },
+        // }
+        false
     }
 }

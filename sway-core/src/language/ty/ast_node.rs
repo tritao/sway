@@ -399,6 +399,58 @@ impl TyAstNode {
             TyAstNodeContent::SideEffect(_) | TyAstNodeContent::Error(_, _) => {}
         }
     }
+
+    pub(crate) fn check_recursive(
+        &self,
+        engines: &Engines,
+        handler: &Handler,
+    ) -> Result<(), ErrorEmitted> {
+        handler.scope(|handler| {
+            match &self.content {
+                TyAstNodeContent::Declaration(node) => match node {
+                    TyDecl::VariableDecl(_decl) => {}
+                    TyDecl::ConstantDecl(_decl) => {}
+                    TyDecl::TraitTypeDecl(_) => {}
+                    TyDecl::FunctionDecl(_decl) => {}
+                    TyDecl::ImplTrait(decl) => {
+                        let decl = engines.de().get(&decl.decl_id);
+                        for item in decl.items.iter() {
+                            match item {
+                                TyTraitItem::Fn(item) => {
+                                    let decl = engines.de().get(item.id());
+                                    let mut ctx = TypeCheckAnalysisContext::new(engines);
+                                    decl.type_check_analyze(handler, &mut ctx)?;
+
+                                    match ctx.check_recursive_calls(handler) {
+                                        Ok(()) => {}
+                                        Err(e) => {
+                                            handler.dedup();
+                                            return Err(e);
+                                        }
+                                    };
+                                }
+                                TyTraitItem::Constant(_item) => {}
+                                TyTraitItem::Type(_) => {}
+                            }
+                        }
+                    }
+                    TyDecl::AbiDecl(_)
+                    | TyDecl::GenericTypeForFunctionScope(_)
+                    | TyDecl::ErrorRecovery(_, _)
+                    | TyDecl::StorageDecl(_)
+                    | TyDecl::TraitDecl(_)
+                    | TyDecl::StructDecl(_)
+                    | TyDecl::EnumDecl(_)
+                    | TyDecl::EnumVariantDecl(_)
+                    | TyDecl::TypeAliasDecl(_) => {}
+                },
+                TyAstNodeContent::Expression(_node) => {}
+                TyAstNodeContent::ImplicitReturnExpression(_node) => {}
+                TyAstNodeContent::SideEffect(_) | TyAstNodeContent::Error(_, _) => {}
+            };
+            Ok(())
+        })
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -134,13 +134,12 @@ impl<K, V> StorageKey<StorageMap<K, V>> where K: Hash {
     ///
     #[storage(read, write)]
     pub fn try_insert(self, key: K, value: V) -> bool where K: Hash {
-        // match self.get(key).try_read() {
-        //     Some(_) => false,
-        //     None => {
-        //         self.insert(key, value);
-        //         true
-        //     },
-        // }
-        false
+        match self.get(key).try_read() {
+            Some(_) => false,
+            None => {
+                self.insert(key, value);
+                true
+            },
+        }
     }
 }

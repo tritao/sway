@@ -241,6 +241,8 @@ impl TypeCheckAnalysis for ty::TyFunctionDecl {
         handler: &Handler,
         ctx: &mut TypeCheckAnalysisContext,
     ) -> Result<(), ErrorEmitted> {
+        //
+        //ctx.get_node_for_fn_decl(fn_ref)
         self.body.type_check_analyze(handler, ctx)
     }
 }

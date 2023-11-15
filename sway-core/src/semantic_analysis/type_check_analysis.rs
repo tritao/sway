@@ -39,6 +39,7 @@ impl Display for TyNodeDepGraphEdge {
 pub enum TyNodeDepGraphNode {
     ImplTrait { node: ty::ImplTrait },
     ImplTraitItem { node: ty::TyTraitItem },
+    Fn { node: ty::FunctionDecl },
 }
 
 // Represents an ordered graph between declaration id indexes.
@@ -51,6 +52,7 @@ pub struct TypeCheckAnalysisContext<'cx> {
     pub(crate) nodes: HashMap<DeclIdIndexType, TyNodeDepGraphNodeId>,
     pub(crate) items_node_stack: Vec<TyNodeDepGraphNodeId>,
     pub(crate) node_stack: Vec<TyNodeDepGraphNodeId>,
+    pub(crate) create_missing_nodes: bool,
 }
 
 impl TypeCheckAnalysisContext<'_> {
@@ -93,33 +95,12 @@ impl TypeCheckAnalysisContext<'_> {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn get_node_from_impl_trait_item(
-        &self,
-        item: &TyImplItem,
-    ) -> Option<TyNodeDepGraphNodeId> {
-        for index in self.items_node_stack.iter().rev() {
-            let node = self
-                .dep_graph
-                .node_weight(*index)
-                .expect("expecting valid node id");
-            if let TyNodeDepGraphNode::ImplTraitItem { node } = node {
-                let matches = match (item, node) {
-                    (TyTraitItem::Fn(item_fn_ref), TyTraitItem::Fn(fn_ref)) => {
-                        fn_ref.name() == item_fn_ref.name()
-                    }
-                    _ => unreachable!(),
-                };
-                if matches {
-                    return Some(*index);
-                }
-            }
-        }
-
-        None
-    }
-
-    pub(crate) fn get_node_from_impl_trait_fn_ref_app(
+    /// This function will return an option to the node that represents
+    /// the function being referenced by a function application.
+    ///
+    /// It will look through all the parent nodes in the engine to deal
+    /// with monomorphized function references.
+    pub(crate) fn get_node_for_fn_decl(
         &self,
         fn_ref: &DeclRef<DeclId<ty::TyFunctionDecl>>,
     ) -> Option<TyNodeDepGraphNodeId> {
@@ -144,16 +125,36 @@ impl TypeCheckAnalysisContext<'_> {
                 .dep_graph
                 .node_weight(*index)
                 .expect("expecting valid node id");
-            if let TyNodeDepGraphNode::ImplTraitItem {
-                node: TyTraitItem::Fn(item_fn_ref),
-            } = node
-            {
-                for possible_node in possible_nodes.iter() {
-                    if possible_node.inner() == item_fn_ref.id().inner() {
-                        return Some(*index);
-                    }
+
+            let fn_decl_id = match node {
+                TyNodeDepGraphNode::ImplTrait { node: _ } => unreachable!(),
+                TyNodeDepGraphNode::ImplTraitItem {
+                    node: TyTraitItem::Fn(item_fn_ref),
+                } => item_fn_ref.id(),
+                TyNodeDepGraphNode::Fn { node: fn_decl } => &fn_decl.decl_id,
+                _ => continue,
+            };
+
+            for possible_node in possible_nodes.iter() {
+                if possible_node.inner() == fn_decl_id.inner() {
+                    return Some(*index);
                 }
             }
+        }
+
+        // If no node has been found yet, create it.
+        if self.create_missing_nodes {
+            // let item_node =
+            // self.add_node(TyNodeDepGraphNode::ImplTraitItem { node: item.clone() });
+
+            // // Connect the item node to the impl trait node.
+            // self.dep_graph.add_edge(
+            //     node,
+            //     item_node,
+            //     TyNodeDepGraphEdge(TyNodeDepGraphEdgeInfo::FnApp),
+            // );
+
+            // self.items_node_stack.push(item_node);
         }
 
         None
@@ -197,6 +198,8 @@ impl TypeCheckAnalysisContext<'_> {
         }
     }
 
+    /// Performs recursive analysis by running the Johnson's algorithm to find all cycles
+    /// in the previously constructed dependency graph.
     pub(crate) fn check_recursive_calls(&self, handler: &Handler) -> Result<(), ErrorEmitted> {
         let cycles = self.dep_graph.cycles();
 
@@ -240,6 +243,7 @@ impl TypeCheckAnalysisContext<'_> {
                 TyTraitItem::Constant(_) => unreachable!(),
                 TyTraitItem::Type(_) => unreachable!(),
             },
+            TyNodeDepGraphNode::Fn { node: _ } => todo!(),
         }
     }
 
@@ -279,6 +283,9 @@ impl DebugWithEngines for TyNodeDepGraphNode {
             TyNodeDepGraphNode::ImplTrait { node } => {
                 format!("{:?}", node.name.as_str())
             }
+            TyNodeDepGraphNode::Fn { node } => {
+                format!("{:?}", node.name.as_str())
+            }
         };
         f.write_str(&text)
     }
@@ -292,6 +299,7 @@ impl<'cx> TypeCheckAnalysisContext<'cx> {
             nodes: Default::default(),
             items_node_stack: Default::default(),
             node_stack: Default::default(),
+            create_missing_nodes: false,
         }
     }
 }

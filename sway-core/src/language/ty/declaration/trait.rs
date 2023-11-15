@@ -11,8 +11,8 @@ use crate::{
     engine_threading::*,
     language::{parsed, CallPath, Visibility},
     semantic_analysis::{
-        type_check_context::MonomorphizeHelper, TypeCheckAnalysis, TypeCheckAnalysisContext,
-        TypeCheckFinalization, TypeCheckFinalizationContext,
+        type_check_context::MonomorphizeHelper, TyNodeDepGraphNode, TypeCheckAnalysis,
+        TypeCheckAnalysisContext, TypeCheckFinalization, TypeCheckFinalizationContext,
     },
     transform,
     type_system::*,
@@ -154,6 +154,9 @@ impl TypeCheckAnalysis for TyTraitItem {
     ) -> Result<(), ErrorEmitted> {
         let decl_engine = ctx.engines.de();
 
+        let item_node = ctx.add_node(TyNodeDepGraphNode::ImplTraitItem { node: self.clone() });
+        ctx.items_node_stack.push(item_node);
+
         match self {
             TyTraitItem::Fn(node) => {
                 let item_fn = decl_engine.get_function(node);
@@ -168,6 +171,8 @@ impl TypeCheckAnalysis for TyTraitItem {
                 item_type.type_check_analyze(handler, ctx)?;
             }
         }
+
+        ctx.items_node_stack.pop();
 
         Ok(())
     }

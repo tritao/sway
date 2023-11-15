@@ -415,23 +415,33 @@ impl TyAstNode {
                     TyDecl::ImplTrait(decl) => {
                         let decl = engines.de().get(&decl.decl_id);
                         for item in decl.items.iter() {
-                            match item {
-                                TyTraitItem::Fn(item) => {
-                                    let decl = engines.de().get(item.id());
-                                    let mut ctx = TypeCheckAnalysisContext::new(engines);
-                                    decl.type_check_analyze(handler, &mut ctx)?;
-
-                                    match ctx.check_recursive_calls(handler) {
-                                        Ok(()) => {}
-                                        Err(e) => {
-                                            handler.dedup();
-                                            return Err(e);
-                                        }
-                                    };
+                            let mut ctx = TypeCheckAnalysisContext::new(engines);
+                            item.type_check_analyze(handler, &mut ctx);
+                            match ctx.check_recursive_calls(handler) {
+                                Ok(()) => {}
+                                Err(e) => {
+                                    handler.dedup();
+                                    return Err(e);
                                 }
-                                TyTraitItem::Constant(_item) => {}
-                                TyTraitItem::Type(_) => {}
-                            }
+                            };
+
+                            // match item {
+                            //     TyTraitItem::Fn(item) => {
+                            //         let decl = engines.de().get(item.id());
+                            //         let mut ctx = TypeCheckAnalysisContext::new(engines);
+                            //         decl.type_check_analyze(handler, &mut ctx)?;
+
+                            //         match ctx.check_recursive_calls(handler) {
+                            //             Ok(()) => {}
+                            //             Err(e) => {
+                            //                 handler.dedup();
+                            //                 return Err(e);
+                            //             }
+                            //         };
+                            //     }
+                            //     TyTraitItem::Constant(_item) => {}
+                            //     TyTraitItem::Type(_) => {}
+                            // }
                         }
                     }
                     TyDecl::AbiDecl(_)

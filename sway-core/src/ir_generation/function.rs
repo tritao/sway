@@ -385,7 +385,10 @@ impl<'eng> FnCompiler<'eng> {
                 deferred_monomorphization,
             } => {
                 if *deferred_monomorphization {
-                    return Err(CompileError::Internal("Trying to compile a deferred function application with deferred monomorphization", name.span()));
+                    eprintln!("{:?}", fn_ref);
+                    eprintln!("{:?}", arguments);
+                    eprintln!("{:?}", name);
+                    return Err(CompileError::Internal("Trying to compile a function application with deferred monomorphization", name.span()));
                 }
                 if let Some(metadata) = selector {
                     self.compile_contract_call(

@@ -85,6 +85,12 @@ impl BaseIdent {
     }
 }
 
+impl fmt::Debug for BaseIdent {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "{}", self.as_str())
+    }
+}
+
 /// An [Ident] is an _identifier_ with a corresponding `span` from which it was derived.
 /// It relies on a custom implementation of Hash which only looks at its textual name
 /// representation, so that namespacing isn't reliant on the span itself, which will
@@ -136,12 +142,6 @@ impl Spanned for Ident {
 }
 
 impl fmt::Display for Ident {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{}", self.as_str())
-    }
-}
-
-impl fmt::Debug for Ident {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "{}", self.as_str())
     }

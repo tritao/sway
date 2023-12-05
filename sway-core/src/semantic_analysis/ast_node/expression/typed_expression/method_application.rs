@@ -360,9 +360,22 @@ pub(crate) fn type_check_method_application(
         span,
     };
 
+    if let ty::TyExpressionVariant::FunctionApplication { ref fn_ref, .. } = &fn_app {
+        if ctx.defer_monomorphization()
+            && fn_ref.decl_span().start() == 3842
+            && fn_ref.decl_span().end() == 3969
+        {
+            dbg!();
+        }
+    }
+
     monomorphize_method_application(&mut fn_app, handler, ctx)?;
 
     if let ty::TyExpressionVariant::FunctionApplication { ref fn_ref, .. } = &fn_app {
+        if fn_ref.id().inner() == 33009 {
+            dbg!();
+        }
+
         let method = decl_engine.get_function(fn_ref);
         exp.return_type = method.return_type.type_id;
         exp.expression = fn_app;

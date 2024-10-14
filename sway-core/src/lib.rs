@@ -570,10 +570,12 @@ pub fn parsed_to_ast(
     // Build the dependency graph for the submodules.
     build_module_dep_graph(handler, &mut parse_program.root)?;
 
-    let namespace = Namespace::init_root(initial_namespace);
+    let initial_namespace = Namespace::init_root(initial_namespace);
     // Collect the program symbols.
-    let mut collection_ctx =
-        ty::TyProgram::collect(handler, engines, parse_program, namespace.clone())?;
+    let namespace = initial_namespace.clone();
+    let mut collection_ctx = ty::TyProgram::collect(handler, engines, parse_program, namespace)?;
+
+    println!("namespace {:#?}", collection_ctx.namespace);
 
     let resolve_ctx = SymbolResolveContext::new(engines, &mut collection_ctx);
     parse_program.resolve_symbols(handler, resolve_ctx);
@@ -584,7 +586,7 @@ pub fn parsed_to_ast(
         engines,
         parse_program,
         &mut collection_ctx,
-        namespace,
+        initial_namespace,
         package_name,
         build_config,
     );

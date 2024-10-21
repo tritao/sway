@@ -193,15 +193,6 @@ impl Namespace {
         }
     }
 
-    /// Returns true if the module given by the `absolute_module_path` is external
-    /// to the current package. External modules are imported in the `Forc.toml` file.
-    pub(crate) fn module_is_external(&self, absolute_module_path: &ModulePath) -> bool {
-        let root_name = self.root.module.name();
-
-        assert!(!absolute_module_path.is_empty(), "Absolute module path must have at least one element, because it always contains the package name.");
-
-        root_name != &absolute_module_path[0]
-    }
     /// Short-hand for calling [Root::resolve_symbol] on `root` with the `mod_path`.
     pub(crate) fn resolve_symbol(
         &self,

@@ -309,3 +309,11 @@ fn module_not_found(path: &[Ident]) -> CompileError {
             .join("::"),
     }
 }
+
+/// Returns true if the module given by the `absolute_module_path` is external
+/// to the current package. External modules are imported in the `Forc.toml` file.
+pub fn module_is_external(module: &Module, absolute_module_path: &ModulePath) -> bool {
+    assert!(!absolute_module_path.is_empty(), "Absolute module path must have at least one element, because it always contains the package name.");
+    let root_name = module.name();
+    root_name != &absolute_module_path[0]
+}

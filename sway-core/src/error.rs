@@ -1,6 +1,10 @@
 //! Tools related to handling/recovering from Sway compile errors and reporting them to the user.
 
-use crate::{language::parsed::VariableDeclaration, namespace::ModulePath, Engines, Namespace};
+use crate::{
+    language::parsed::VariableDeclaration,
+    namespace::{module_is_external, ModulePath},
+    Engines, Namespace,
+};
 
 /// Acts as the result of parsing `Declaration`s, `Expression`s, etc.
 /// Some `Expression`s need to be able to create `VariableDeclaration`s,
@@ -38,5 +42,5 @@ pub(crate) fn module_can_be_changed(
     // if the module is in the same package where the issue is.
     // A bit too restrictive, considering the same workspace might be more appropriate,
     // but it's a good start.
-    !issue_namespace.module_is_external(absolute_module_path)
+    !module_is_external(issue_namespace.root_module(), absolute_module_path)
 }

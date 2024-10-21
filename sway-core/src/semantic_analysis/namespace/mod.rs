@@ -9,7 +9,7 @@ mod trait_map;
 
 pub use contract_helpers::*;
 pub use lexical_scope::{Items, LexicalScope, LexicalScopeId, LexicalScopePath};
-pub use module::Module;
+pub use module::{module_is_external, Module};
 pub use namespace::Namespace;
 pub use namespace::TryInsertingTraitImplOnFailure;
 pub use root::ResolvedDeclaration;

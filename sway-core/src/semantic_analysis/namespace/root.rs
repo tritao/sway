@@ -721,26 +721,13 @@ impl Root {
         mod_path: &ModulePath,
         call_path: &CallPath,
         self_type: Option<TypeId>,
-    ) -> Result<ResolvedDeclaration, ErrorEmitted> {
-        let (decl, _) =
-            self.resolve_call_path_and_mod_path(handler, engines, mod_path, call_path, self_type)?;
-        Ok(decl)
-    }
-
-    pub(crate) fn resolve_call_path_and_mod_path(
-        &self,
-        handler: &Handler,
-        engines: &Engines,
-        mod_path: &ModulePath,
-        call_path: &CallPath,
-        self_type: Option<TypeId>,
-    ) -> Result<(ResolvedDeclaration, Vec<Ident>), ErrorEmitted> {
+    ) -> Result<(ResolvedDeclaration, ModulePathBuf), ErrorEmitted> {
         let symbol_path: Vec<_> = mod_path
             .iter()
             .chain(&call_path.prefixes)
             .cloned()
             .collect();
-        self.resolve_symbol_and_mod_path(
+        self.resolve_symbol(
             handler,
             engines,
             &symbol_path,
@@ -823,19 +810,6 @@ impl Root {
     /// If the symbol is within the given module's namespace via import, we recursively traverse
     /// imports until we find the original declaration.
     pub(crate) fn resolve_symbol(
-        &self,
-        handler: &Handler,
-        engines: &Engines,
-        mod_path: &ModulePath,
-        symbol: &Ident,
-        self_type: Option<TypeId>,
-    ) -> Result<ResolvedDeclaration, ErrorEmitted> {
-        let (decl, _) =
-            self.resolve_symbol_and_mod_path(handler, engines, mod_path, symbol, self_type)?;
-        Ok(decl)
-    }
-
-    fn resolve_symbol_and_mod_path(
         &self,
         handler: &Handler,
         engines: &Engines,

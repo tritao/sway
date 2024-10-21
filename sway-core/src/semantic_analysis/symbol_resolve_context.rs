@@ -205,7 +205,7 @@ impl<'a> SymbolResolveContext<'a> {
         mod_path: &ModulePath,
         call_path: &CallPath,
     ) -> Result<ResolvedDeclaration, ErrorEmitted> {
-        let (decl, mod_path) = self.namespace().root.resolve_call_path_and_mod_path(
+        let (decl, mod_path) = self.namespace().root.resolve_call_path(
             handler,
             self.engines,
             mod_path,

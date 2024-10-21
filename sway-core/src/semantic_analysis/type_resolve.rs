@@ -155,14 +155,14 @@ pub fn resolve_type(
             name,
             trait_type_id,
         } => {
-            let item_ref = namespace.get_root_trait_item_for_type(
-                handler,
-                engines,
-                &name,
-                trait_type_id,
-                None,
-            )?;
-            if let ResolvedTraitImplItem::Typed(TyTraitItem::Type(type_ref)) = item_ref {
+            let trait_item_ref = namespace
+                .root
+                .module
+                .current_items()
+                .implemented_traits
+                .get_trait_item_for_type(handler, engines, &name, trait_type_id, None)?;
+
+            if let ResolvedTraitImplItem::Typed(TyTraitItem::Type(type_ref)) = trait_item_ref {
                 let type_decl = engines.de().get_type(type_ref.id());
                 if let Some(ty) = &type_decl.ty {
                     ty.type_id
@@ -172,7 +172,7 @@ pub fn resolve_type(
             } else {
                 return Err(handler.emit_err(CompileError::Internal(
                     "Expecting associated type",
-                    item_ref.span(engines),
+                    trait_item_ref.span(engines),
                 )));
             }
         }
@@ -310,7 +310,7 @@ pub fn resolve_call_path(
 ) -> Result<ResolvedDeclaration, ErrorEmitted> {
     let (decl, mod_path) = namespace
         .root
-        .resolve_call_path_and_mod_path(handler, engines, mod_path, call_path, self_type)?;
+        .resolve_call_path(handler, engines, mod_path, call_path, self_type)?;
 
     // In case there is no mod path we don't need to check visibility
     if mod_path.is_empty() {

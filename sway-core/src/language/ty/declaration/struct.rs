@@ -11,6 +11,7 @@ use crate::{
     error::module_can_be_changed,
     has_changes,
     language::{parsed::StructDeclaration, CallPath, Visibility},
+    namespace::module_is_submodule_of,
     transform,
     type_system::*,
     Namespace,
@@ -161,8 +162,12 @@ impl StructAccessInfo {
 
         let struct_can_be_changed =
             module_can_be_changed(engines, namespace, &struct_decl.call_path.prefixes);
-        let is_public_struct_access =
-            !namespace.module_is_submodule_of(engines, &struct_decl.call_path.prefixes, true);
+        let is_public_struct_access = !module_is_submodule_of(
+            namespace.root_module(),
+            namespace.module(engines),
+            &struct_decl.call_path.prefixes,
+            true,
+        );
 
         Self {
             struct_can_be_changed,

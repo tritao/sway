@@ -727,13 +727,7 @@ impl Root {
             .chain(&call_path.prefixes)
             .cloned()
             .collect();
-        self.resolve_symbol(
-            handler,
-            engines,
-            &symbol_path,
-            &call_path.suffix,
-            self_type,
-        )
+        self.resolve_symbol(handler, engines, &symbol_path, &call_path.suffix, self_type)
     }
 
     #[allow(clippy::too_many_arguments)]

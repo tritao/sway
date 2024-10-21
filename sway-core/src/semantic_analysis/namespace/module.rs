@@ -317,3 +317,50 @@ pub fn module_is_external(module: &Module, absolute_module_path: &ModulePath) ->
     let root_name = module.name();
     root_name != &absolute_module_path[0]
 }
+
+/// Returns true if the current module being checked is a direct or indirect submodule of
+/// the module given by the `absolute_module_path`.
+///
+/// The current module being checked is determined by `mod_path`.
+///
+/// E.g., the `mod_path` `[fist, second, third]` of the root `foo` is a submodule of the module
+/// `[foo, first]`. Note that the `mod_path` does not contain the root name, while the
+/// `absolute_module_path` always contains it.
+///
+/// If the current module being checked is the same as the module given by the `absolute_module_path`,
+/// the `true_if_same` is returned.
+pub fn module_is_submodule_of(
+    module: &Module,
+    submodule: &Module,
+    absolute_module_path: &ModulePath,
+    true_if_same: bool,
+) -> bool {
+    let (package_name, modules) = absolute_module_path.split_first().expect("Absolute module path must have at least one element, because it always contains the package name.");
+
+    // `mod_path` does not contain the root name, so we have to separately check
+    // that the root name is equal to the module package name.
+    let root_name = module.name();
+    if root_name != package_name {
+        return false;
+    }
+
+    let mod_path = submodule.mod_path();
+    if mod_path.len() < modules.len() {
+        return false;
+    }
+
+    let is_submodule = modules
+        .iter()
+        .zip(mod_path.iter())
+        .all(|(left, right)| left == right);
+
+    if is_submodule {
+        if mod_path.len() == modules.len() {
+            true_if_same
+        } else {
+            true
+        }
+    } else {
+        false
+    }
+}

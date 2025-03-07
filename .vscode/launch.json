@@ -14,6 +14,19 @@
     "configurations": [
         {
             "type": "lldb",
+            "request": "launch",
+            "name": "Cargo launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin",
+                    "forc",
+                ]
+            },
+            "args": ["build", "--path", "_test-case"]
+        },
+        {
+            "type": "lldb",
             "request": "attach",
             "name": "Attach to forc-lsp",
             "pid": "${command:pickProcess}",

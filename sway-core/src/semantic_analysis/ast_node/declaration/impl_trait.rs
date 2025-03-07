@@ -1088,14 +1088,18 @@ fn type_check_trait_implementation(
     interface_item_refs.extend(supertrait_interface_item_refs);
     impld_item_refs.extend(supertrait_impld_item_refs.clone());
     let decl_mapping = DeclMapping::from_interface_and_item_and_impld_decl_refs(
+        engines,
         interface_item_refs,
         BTreeMap::new(),
         impld_item_refs,
     );
+
     for item in trait_items.iter() {
         match item {
             TyImplItem::Fn(decl_ref) => {
                 let mut method = (*decl_engine.get_function(decl_ref)).clone();
+
+                println!("{}", engines.help_out(method.clone()));
 
                 // We need to add impl type parameters to the method's type parameters
                 // so that in-line monomorphization can complete.

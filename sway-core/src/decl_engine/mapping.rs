@@ -82,6 +82,7 @@ impl DeclMapping {
     }
 
     pub(crate) fn from_interface_and_item_and_impld_decl_refs(
+        engines: &Engines,
         interface_decl_refs: InterfaceItemMap,
         item_decl_refs: ItemMap,
         impld_decl_refs: ItemMap,
@@ -105,7 +106,16 @@ impl DeclMapping {
                     TyTraitItem::Constant(decl_ref) => decl_ref.id().into(),
                     TyTraitItem::Type(decl_ref) => decl_ref.id().into(),
                 };
-                mapping.push((interface_decl_ref, new_decl_ref));
+                let is_dummy = match new_decl_ref {
+                    AssociatedItemDeclId::Function(decl_id) => {
+                        engines.de().get_function(&decl_id).is_trait_method_dummy
+                    }
+                    AssociatedItemDeclId::TraitFn(_) => true,
+                    _ => false,
+                };
+                if !is_dummy {
+                    mapping.push((interface_decl_ref, new_decl_ref));
+                }
             }
         }
         for (decl_name, item) in item_decl_refs.into_iter() {
@@ -120,7 +130,16 @@ impl DeclMapping {
                     TyTraitItem::Constant(decl_ref) => decl_ref.id().into(),
                     TyTraitItem::Type(decl_ref) => decl_ref.id().into(),
                 };
-                mapping.push((interface_decl_ref, new_decl_ref));
+                let is_dummy = match new_decl_ref {
+                    AssociatedItemDeclId::Function(decl_id) => {
+                        engines.de().get_function(&decl_id).is_trait_method_dummy
+                    }
+                    AssociatedItemDeclId::TraitFn(_) => true,
+                    _ => false,
+                };
+                if !is_dummy {
+                    mapping.push((interface_decl_ref, new_decl_ref));
+                }
             }
         }
         DeclMapping { mapping }

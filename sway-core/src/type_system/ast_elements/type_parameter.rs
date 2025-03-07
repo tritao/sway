@@ -141,7 +141,7 @@ impl IsConcrete for TypeParameter {
 
 impl DebugWithEngines for TypeParameter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, engines: &Engines) -> fmt::Result {
-        write!(f, "{}", self.name)?;
+        write!(f, "{:?} {}", engines.help_out(self.type_id), self.name)?;
         if !self.trait_constraints.is_empty() {
             write!(
                 f,
@@ -519,13 +519,15 @@ impl TypeParameter {
                     ..
                 } = type_param;
 
+                println!("gather_decl_mapping_from_trait_constraints handling type param {:?}", engines.help_out(type_param));
+
                 let code_block_first_pass = ctx.code_block_first_pass();
                 if !code_block_first_pass {
                     // Tries to unify type id with a single existing trait implementation.
                     // If more than one implementation exists we throw an error.
                     // We only try to do the type inference from trait with a single trait constraint.
                     if !type_id.is_concrete(engines, TreatNumericAs::Concrete) && trait_constraints.len() == 1 {
-                        let concrete_trait_type_ids : Vec<(TypeId, String)>=
+                        let concrete_trait_type_ids : Vec<(TypeId, String)> =
                             TraitMap::get_trait_constraints_are_satisfied_for_types(
                                 ctx
                             .namespace()
@@ -612,11 +614,30 @@ impl TypeParameter {
                 }
             }
 
+
+            println!("interface_item_refs");
+            for key in &interface_item_refs {
+                println!(" {} {:?} => {}", key.0.0, engines.help_out(key.0.1), engines.help_out(key.1));
+            }
+
+            println!("item_refs");
+            for key in &item_refs {
+                println!(" {} {:?} => {}", key.0.0, engines.help_out(key.0.1), engines.help_out(key.1));
+            }
+
+            println!("impld_item_refs");
+            for key in &impld_item_refs {
+                println!(" {} {:?} => {}", key.0.0, engines.help_out(key.0.1), engines.help_out(key.1));
+            }
+
             let decl_mapping = DeclMapping::from_interface_and_item_and_impld_decl_refs(
+                ctx.engines(),
                 interface_item_refs,
                 item_refs,
                 impld_item_refs,
             );
+            println!("{:#?}", ctx.engines().help_out(decl_mapping.clone()));
+
             Ok(decl_mapping)
         })
     }
@@ -654,6 +675,19 @@ fn handle_trait(
                         trait_name,
                         type_arguments,
                     );
+
+                let trait_interface_item_refs: InterfaceItemMap = trait_interface_item_refs
+                    .into_iter()
+                    .filter(|((name, _), _)| name.as_str() == function_name)
+                    .collect();
+                let trait_item_refs: ItemMap = trait_item_refs
+                    .into_iter()
+                    .filter(|((name, _), _)| name.as_str() == function_name)
+                    .collect();
+                let trait_impld_item_refs: ItemMap = trait_impld_item_refs
+                    .into_iter()
+                    .filter(|((name, _), _)| name.as_str() == function_name)
+                    .collect();
 
                 interface_item_refs.extend(trait_interface_item_refs);
                 item_refs.extend(trait_item_refs);

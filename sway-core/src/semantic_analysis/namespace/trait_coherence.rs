@@ -203,12 +203,17 @@ pub(crate) fn check_impls_for_overlap(
 ) -> Result<(), ErrorEmitted> {
     let mut overlap_err = None;
     let unify_check = UnifyCheck::constraint_subset(engines);
-    let mut traits_types = HashMap::<CallPath, Vec<TypeId>>::new();
-    trait_map.get_traits_types(&mut traits_types)?;
-    other.get_traits_types(&mut traits_types)?;
 
-    for key in trait_map.trait_impls.keys() {
-        for self_entry in trait_map.trait_impls[key].iter() {
+    use std::time::Instant;
+    let now = Instant::now();
+
+    let mut traits_impls_typeids = HashMap::<CallPath, Vec<TypeId>>::new();
+    trait_map.get_traits_types(&mut traits_impls_typeids)?;
+    other.get_traits_types(&mut traits_impls_typeids)?;
+
+
+    for type_key in trait_map.trait_impls.keys() {
+        for self_entry in trait_map.trait_impls[type_key].iter() {
             let self_tcs: Vec<(CallPath, TypeId)> = self_entry
                 .key
                 .impl_type_parameters
@@ -251,7 +256,7 @@ pub(crate) fn check_impls_for_overlap(
                         })
                         .collect::<Vec<_>>();
                     let other_tcs_satisfied = other_tcs.iter().all(|(trait_name, tp_type_id)| {
-                        if let Some(tc_type_ids) = traits_types.get(trait_name) {
+                        if let Some(tc_type_ids) = traits_impls_typeids.get(trait_name) {
                             tc_type_ids.iter().any(|tc_type_id| {
                                 let mut type_mapping = TypeSubstMap::new();
                                 type_mapping.insert(*tp_type_id, *tc_type_id);
@@ -269,7 +274,7 @@ pub(crate) fn check_impls_for_overlap(
                     });
 
                     let self_tcs_satisfied = self_tcs.iter().all(|(trait_name, tp_type_id)| {
-                        if let Some(tc_type_ids) = traits_types.get(trait_name) {
+                        if let Some(tc_type_ids) = traits_impls_typeids.get(trait_name) {
                             tc_type_ids.iter().any(|tc_type_id| {
                                 let mut type_mapping = TypeSubstMap::new();
                                 type_mapping.insert(*tp_type_id, *tc_type_id);
@@ -316,11 +321,17 @@ pub(crate) fn check_impls_for_overlap(
         }
     }
 
+    println!("overlap check: {:.2?}", now.elapsed());
+
+    let now = Instant::now();
+
     if let Some(overlap_err) = overlap_err {
         return Err(overlap_err);
     }
 
     trait_map.extend(other, engines);
+
+    println!("overlap check trait map extend: {:.2?}", now.elapsed());
 
     Ok(())
 }

@@ -112,12 +112,8 @@ impl DisplayWithEngines for TyFunctionDecl {
             self.name,
             if !self.type_parameters.is_empty() {
                 format!(
-                    "<{}>",
-                    self.type_parameters
-                        .iter()
-                        .map(|p| format!("{}", engines.help_out(p.initial_type_id)))
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    "<{:?}>",
+                    engines.help_out(self.type_parameters.clone())
                 )
             } else {
                 "".to_string()
@@ -347,7 +343,8 @@ impl ReplaceDecls for TyFunctionDecl {
         handler: &Handler,
         ctx: &mut TypeCheckContext,
     ) -> Result<bool, ErrorEmitted> {
-        let mut func_ctx = ctx.by_ref().with_self_type(self.implementing_for_typeid);
+        println!("replace_decls_inner for TyFunctionDecl implementing_for_typeid {:?}", ctx.engines().help_out(self.implementing_for_typeid));
+        let mut func_ctx = ctx.by_ref().with_self_type(self.implementing_for_typeid.clone());
         self.body
             .replace_decls(decl_mapping, handler, &mut func_ctx)
     }

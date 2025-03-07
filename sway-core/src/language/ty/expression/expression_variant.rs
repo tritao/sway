@@ -883,7 +883,13 @@ impl ReplaceDecls for TyExpressionVariant {
                             &method.name.span(),
                         )?;
 
+                    println!("implementing_type_method_ref {}", ctx.engines().help_out(method.clone()));
+
+                    
+
                     inner_decl_mapping.extend(decl_mapping);
+                    println!("extended {:?}", ctx.engines().help_out(inner_decl_mapping.clone()));
+
 
                     if method.replace_decls(&inner_decl_mapping, handler, ctx)? {
                         decl_engine.replace(*fn_ref.id(), method);

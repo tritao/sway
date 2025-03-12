@@ -211,7 +211,6 @@ pub(crate) fn check_impls_for_overlap(
     trait_map.get_traits_types(&mut traits_impls_typeids)?;
     other.get_traits_types(&mut traits_impls_typeids)?;
 
-
     for type_key in trait_map.trait_impls.keys() {
         for self_entry in trait_map.trait_impls[type_key].iter() {
             let self_tcs: Vec<(CallPath, TypeId)> = self_entry
@@ -299,6 +298,9 @@ pub(crate) fn check_impls_for_overlap(
                                             CompileError::ConflictingImplsForTraitAndType {
                                                 trait_name: trait_item_name1.to_string(),
                                                 type_implementing_for: engines
+                                                    .help_out(self_entry.key.type_id)
+                                                    .to_string(),
+                                                type_implementing_for_unaliased: engines
                                                     .help_out(self_entry.key.type_id)
                                                     .to_string(),
                                                 existing_impl_span: self_entry

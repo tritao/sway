@@ -1,0 +1,9 @@
+[project]
+entry = "lib.sw"
+license = "Apache-2.0"
+name = "test-case"
+implicit-std = false
+
+[dependencies]
+#core = { path = "../sway-lib-core" }
+#std = { path = "../sway-lib-std" }

@@ -10,28 +10,44 @@ publish = false
 assert_matches = "1.5"
 
 # Dependencies from the `fuel-core` repository:
-fuel-core = { version = "0.46", default-features = false }
+fuel-core = { workspace = true, default-features = false }
 # Using full semver as the workspace Cargo.toml (see the comment there) 
-fuel-core-client = { version = "0.46.0", default-features = false }
+fuel-core-client = { workspace = true, default-features = false }
 
 # Dependencies from the `fuel-vm` repository:
-fuel-vm = { version = "0.62", features = ["random"] }
+fuel-vm = { workspace = true, features = ["random"] }
 
 # Dependencies from the `fuels-rs` repository:
-fuels = { version = "0.75", features = ["fuel-core-lib"] }
+fuels = { workspace = true }
 
-hex = "0.4"
-paste = "1.0"
-pretty_assertions = "1.4"
-rand = "0.8"
-sha2 = "0.10"
-sha3 = "0.10"
-tai64 = { version = "4.0", features = ["serde"] }
-tokio = { version = "1.12", features = ["macros", "rt"] }
+hex = { workspace = true }
+paste = { workspace = true }
+pretty_assertions = { workspace = true }
+rand = { workspace = true }
+sha2 = { workspace = true }
+sha3 = { workspace = true }
+tai64 = { workspace = true, features = ["serde"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 
 [[test]]
 harness = true
 name = "integration_tests"
 path = "test_projects/harness.rs"
 
-[workspace]
+[package.metadata.cargo-udeps.ignore]
+normal = [
+    "assert_matches",
+    "fuel-core",
+    "fuel-core-client",
+    "fuel-vm",
+    "paste",
+    "pretty_assertions",
+    "rand",
+    "sha2",
+    "sha3",
+    "tai64",
+]
+
+[lints.clippy]
+# turn clippy off to avoid clippy CI check needing to build test projects
+all = "allow"

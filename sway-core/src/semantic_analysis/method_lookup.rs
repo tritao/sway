@@ -267,10 +267,22 @@ impl TypeCheckContext<'_> {
             return Ok(items.into_iter().map(|candidate| candidate.item).collect());
         }
 
-        // Consider items from supersets indicated by the annotation return type.
-        if !matches!(&*type_engine.get(annotation_type), TypeInfo::Unknown)
-            && !type_id.is_concrete(self.engines, crate::TreatNumericAs::Concrete)
-        {
+        let type_info = type_engine.get(type_id);
+
+        let should_consider_annotation_supersets = !matches!(
+            &*type_info,
+            TypeInfo::UnknownGeneric {
+                is_from_type_parameter: true,
+                ..
+            } | TypeInfo::TypeParam(..)
+        ) && !matches!(&*type_engine.get(annotation_type), TypeInfo::Unknown)
+            && !type_id.is_concrete(self.engines, crate::TreatNumericAs::Concrete);
+
+        // Once we know the receiver is a concrete (or decaying) type, not just a method generic,
+        // we look at the expected return type of the surrounding expression.  If that contextual type
+        // can coerce to the receiver, pull in trait items defined for the context so method lookup
+        // can see implementations that would otherwise be hidden behind the annotation.
+        if should_consider_annotation_supersets {
             let coercion_check = UnifyCheck::coercion(self.engines).with_ignore_generic_names(true);
 
             let inner_types =

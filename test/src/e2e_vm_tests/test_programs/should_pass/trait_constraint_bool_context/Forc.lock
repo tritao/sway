@@ -1,0 +1,8 @@
+[[package]]
+name = "std"
+source = "path+from-root-64BBD977DFF97C86"
+
+[[package]]
+name = "trait_constraint_bool_context"
+source = "member"
+dependencies = ["std"]

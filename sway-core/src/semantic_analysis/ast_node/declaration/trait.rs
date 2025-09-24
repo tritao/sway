@@ -23,8 +23,8 @@ use crate::{
     semantic_analysis::{
         declaration::{insert_supertraits_into_namespace, SupertraitOf},
         symbol_collection_context::SymbolCollectionContext,
-        AbiMode, TypeCheckAnalysis, TypeCheckAnalysisContext, TypeCheckContext,
-        TypeCheckFinalization, TypeCheckFinalizationContext,
+        AbiMode, ConstShadowingMode, TypeCheckAnalysis, TypeCheckAnalysisContext,
+        TypeCheckContext, TypeCheckFinalization, TypeCheckFinalizationContext,
     },
     type_system::*,
     Engines,
@@ -604,9 +604,19 @@ impl TyTraitDecl {
         }
 
         // Insert the constants into the namespace.
+        //
+        // Interface constants are first populated from the trait's surface and may be overwritten by
+        // impl-provided values below. That insertion happens while we are still inside the
+        // temporary type-checking namespace, so the usual `ItemStyle` constant shadowing rules are
+        // too strict: any trait constraint such as `where T: Trait` replaces the same constant and
+        // triggers the duplicate-constant diagnostic. Temporarily relaxing the shadowing mode
+        // avoids that false positive.
+        let prev_const_shadowing_mode = ctx.const_shadowing_mode;
+        ctx.const_shadowing_mode = ConstShadowingMode::Allow;
         for (name, decl) in const_symbols.into_iter() {
             let _ = ctx.insert_symbol(handler, name, decl);
         }
+        ctx.const_shadowing_mode = prev_const_shadowing_mode;
 
         // Insert the methods of the trait into the namespace.
         // Specifically do not check for conflicting definitions because

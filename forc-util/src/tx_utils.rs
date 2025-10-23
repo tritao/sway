@@ -63,6 +63,9 @@ pub fn decode_log_data(
 ) -> anyhow::Result<DecodedLog> {
     match program_abi {
         ProgramABI::Fuel(program_abi) => decode_fuel_vm_log_data(log_id, log_data, program_abi),
+        ProgramABI::RiscV(()) => Err(anyhow::anyhow!(
+            "RISC-V log decoding is not implemented yet"
+        )),
         _ => Err(anyhow::anyhow!(
             "only Fuel VM is supported for log decoding"
         )),

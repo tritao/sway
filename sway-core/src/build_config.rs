@@ -32,10 +32,14 @@ pub enum BuildTarget {
     #[clap(name = "evm")]
     #[strum(serialize = "evm")]
     EVM,
+    #[serde(rename = "riscv")]
+    #[clap(name = "riscv", hide = true)]
+    #[strum(serialize = "riscv")]
+    RiscV,
 }
 
 impl BuildTarget {
-    pub const CFG: &'static [&'static str] = &["evm", "fuel"];
+    pub const CFG: &'static [&'static str] = &["evm", "fuel", "riscv"];
 }
 
 #[derive(Default, Clone, Copy)]
@@ -176,6 +180,21 @@ impl std::ops::BitOrAssign for PrintIr {
                 self.passes.push(pass);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BuildTarget;
+    use std::str::FromStr;
+
+    #[test]
+    fn build_target_riscv_round_trip() {
+        assert_eq!(
+            BuildTarget::from_str("riscv").expect("should parse riscv target"),
+            BuildTarget::RiscV
+        );
+        assert_eq!(BuildTarget::RiscV.to_string(), "riscv");
     }
 }
 

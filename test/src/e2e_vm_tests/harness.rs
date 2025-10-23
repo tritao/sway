@@ -255,6 +255,9 @@ pub(crate) fn runs_in_vm(
                 },
             }
         }
+        BuildTarget::RiscV => {
+            bail!("RISC-V VM harness is not available yet");
+        }
     }
 }
 
@@ -455,6 +458,7 @@ fn emit_json_abi(
         ProgramABI::Fuel(abi) => serde_json::json!(abi),
         ProgramABI::Evm(abi) => serde_json::json!(abi),
         ProgramABI::MidenVM(_) => todo!(),
+        ProgramABI::RiscV(_) => serde_json::json!({}),
     };
     let file = std::fs::File::create(json_abi_output_path)?;
     serde_json::to_writer_pretty(&file, &json_abi)?;

@@ -207,6 +207,7 @@ rayon-cond = "0.3"
 regex = "1.10"
 reqwest = "0.12"
 rexpect = "0.6"
+riscv-isa = "0.3.1"
 revm = "14.0"
 rmcp = "0.2"
 ropey = "1.5"
@@ -259,3 +260,6 @@ vte = "0.13"
 walkdir = "2.3"
 whoami = "1.5"
 wiremock = "0.6"
+
+[patch.crates-io]
+riscv-isa = { path = "../riscv-isa" }

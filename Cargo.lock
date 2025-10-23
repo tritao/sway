@@ -10030,6 +10030,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "riscv-isa"
+version = "0.3.1"
+
+[[package]]
 name = "rkyv"
 version = "0.7.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11535,6 +11539,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "petgraph",
+ "riscv-isa",
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",

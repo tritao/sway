@@ -384,7 +384,8 @@ impl TestContext {
                                 abi.configurables.as_ref().cloned().unwrap_or_default()
                             }
                             sway_core::asm_generation::ProgramABI::Evm(_)
-                            | sway_core::asm_generation::ProgramABI::MidenVM(_) => vec![],
+                            | sway_core::asm_generation::ProgramABI::MidenVM(_)
+                            | sway_core::asm_generation::ProgramABI::RiscV(_) => vec![],
                         }
                         .into_iter()
                         .map(|x| (x.offset, x.name))

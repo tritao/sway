@@ -6,4 +6,5 @@ pub enum ProgramABI {
     Fuel(fuel_abi_types::abi::program::ProgramABI),
     Evm(EvmAbiResult),
     MidenVM(()),
+    RiscV(()),
 }

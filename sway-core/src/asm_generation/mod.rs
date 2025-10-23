@@ -6,6 +6,8 @@ pub use evm::*;
 pub mod from_ir;
 pub mod fuel;
 pub mod instruction_set;
+pub mod riscv;
+pub use riscv::*;
 
 mod finalized_asm;
 pub use finalized_asm::*;

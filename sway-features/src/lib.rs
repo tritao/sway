@@ -173,6 +173,8 @@ features! {
     "https://github.com/FuelLabs/sway/issues/6860",
     new_hashing = true,
     "https://github.com/FuelLabs/sway/issues/7256",
+    riscv_backend = false,
+    "https://github.com/FuelLabs/sway/blob/master/docs/risc-v-prototype.md",
 }
 
 #[derive(Clone, Debug, Default, Parser)]

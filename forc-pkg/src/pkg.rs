@@ -489,6 +489,7 @@ impl BuiltPackage {
             }
             // TODO?
             ProgramABI::MidenVM(()) => Ok(None),
+            ProgramABI::RiscV(()) => Ok(None),
         }
     }
 
@@ -1848,6 +1849,7 @@ pub fn compile(
 
             ProgramABI::Evm(ops)
         }
+        BuildTarget::RiscV => ProgramABI::RiscV(()),
     };
 
     let entries = asm
@@ -2443,6 +2445,10 @@ pub fn build(
             pinned: pkg.clone(),
             manifest_file: manifest.clone(),
         };
+
+        if descriptor.target == BuildTarget::RiscV && !experimental.riscv_backend {
+            bail!("The RISC-V backend is experimental. Enable it with `--experimental riscv_backend` or set it in the package manifest.");
+        }
 
         let fail = |infos, warnings, errors| {
             print_on_failure(

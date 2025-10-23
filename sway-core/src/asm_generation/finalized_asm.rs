@@ -94,6 +94,17 @@ impl FinalizedAsm {
                     })
                 }
             }
+            InstructionSet::RiscV { ops } => {
+                let text = ops
+                    .iter()
+                    .map(|op| op.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                Ok(CompiledBytecode {
+                    bytecode: text.into_bytes(),
+                    named_data_section_entries_offsets: BTreeMap::new(),
+                })
+            }
         }
     }
 }
@@ -611,5 +622,6 @@ pub fn check_invalid_opcodes(handler: &Handler, asm: &FinalizedAsm) -> Result<()
             ProgramKind::Predicate => checks::check_predicate_opcodes(handler, &ops[..]),
         },
         InstructionSet::Evm { ops: _ } => Ok(()),
+        InstructionSet::RiscV { ops: _ } => Ok(()),
     }
 }
